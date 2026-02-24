@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ title or "Intrusion Detection System" }}</title>
+    <meta
+      name="description"
+      content="Employee Security & Intrusion Detection System"
+    />
+    <!-- Bootstrap 5 -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Font Awesome -->
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <!-- Custom CSS -->
+    <link
+      href="{{ url_for('static', filename='style.css') }}"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- ===== Navbar ===== -->
+    <nav class="navbar navbar-expand-lg">
+      <div class="container-fluid px-4">
+        <a class="navbar-brand" href="/">
+          <div class="brand-icon">
+            <i class="fa-solid fa-shield-halved"></i>
+          </div>
+          SecureIDS
+        </a>
+        <button
+          class="navbar-toggler border-0"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navbarNav"
+          style="color: var(--text-secondary)"
+        >
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav ms-auto gap-1 align-items-center">
+            {% if session.get("admin_logged_in") %}
+            <li class="nav-item">
+              <a class="nav-link" href="/admin/dashboard"
+                ><i class="fa-solid fa-gauge me-1"></i>Dashboard</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link nav-badge" href="/admin/logout"
+                ><i class="fa-solid fa-right-from-bracket me-1"></i>Logout</a
+              >
+            </li>
+            {% elif session.get("employee_logged_in") %}
+            <li class="nav-item">
+              <a class="nav-link" href="/employee/dashboard"
+                ><i class="fa-solid fa-id-card me-1"></i>My Dashboard</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link nav-badge" href="/logout"
+                ><i class="fa-solid fa-right-from-bracket me-1"></i>Logout</a
+              >
+            </li>
+            {% else %}
+            <li class="nav-item">
+              <a class="nav-link" href="/"
+                ><i class="fa-solid fa-user me-1"></i>Employee Login</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/employee/register"
+                ><i class="fa-solid fa-user-plus me-1"></i>Register</a
+              >
+            </li>
+            <li class="nav-item">
+              <a class="nav-link nav-badge" href="/admin/login"
+                ><i class="fa-solid fa-lock me-1"></i>Admin</a
+              >
+            </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <!-- ===== Flash Messages ===== -->
+    {% with messages = get_flashed_messages(with_categories=true) %} {% if
+    messages %}
+    <div class="container-fluid px-4 pt-3">
+      <div class="flash-container">
+        {% for category, message in messages %}
+        <div class="alert-custom alert-{{ category }}">
+          {% if category == 'success' %}
+          <i class="fa-solid fa-circle-check"></i>
+          {% elif category == 'danger' %}
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          {% elif category == 'warning' %}
+          <i class="fa-solid fa-bell"></i>
+          {% else %}
+          <i class="fa-solid fa-circle-info"></i>
+          {% endif %} {{ message }}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %} {% endwith %}
+
+    <!-- ===== Page Content ===== -->
+    {% block content %}{% endblock %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

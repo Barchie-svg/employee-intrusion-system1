@@ -1,0 +1,76 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="auth-wrapper">
+  <div class="auth-card">
+
+    <div class="auth-icon">
+      <i class="fa-solid fa-shield-halved"></i>
+    </div>
+
+    <h1 class="auth-title">Employee Login</h1>
+    <p class="auth-subtitle">Enter your credentials to access your account</p>
+
+    <form method="POST" action="/" autocomplete="off">
+      <div class="mb-4">
+        <label class="form-label"><i class="fa-solid fa-user me-1"></i> Username</label>
+        <input
+          id="username"
+          name="username"
+          type="text"
+          class="form-control"
+          placeholder="Enter your username"
+          required
+          autofocus
+        >
+      </div>
+
+      <div class="mb-4">
+        <label class="form-label"><i class="fa-solid fa-lock me-1"></i> Password</label>
+        <div style="position: relative;">
+          <input
+            id="password"
+            name="password"
+            type="password"
+            class="form-control"
+            placeholder="Enter your password"
+            required
+            style="padding-right: 44px !important;"
+          >
+          <span onclick="togglePwd('password', this)"
+            style="position:absolute; right:14px; top:50%; transform:translateY(-50%); cursor:pointer; color:var(--text-secondary);">
+            <i class="fa-solid fa-eye"></i>
+          </span>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary-custom mt-2" id="login-btn">
+        <i class="fa-solid fa-right-to-bracket me-2"></i> Login
+      </button>
+    </form>
+
+    <hr class="divider">
+
+    <p class="auth-link">
+      Don't have an account? <a href="/employee/register">Register here</a>
+    </p>
+    <p class="auth-link mt-1">
+      Are you an admin? <a href="/admin/login">Admin Login</a>
+    </p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function togglePwd(fieldId, icon) {
+  const field = document.getElementById(fieldId);
+  if (field.type === 'password') {
+    field.type = 'text';
+    icon.innerHTML = '<i class="fa-solid fa-eye-slash"></i>';
+  } else {
+    field.type = 'password';
+    icon.innerHTML = '<i class="fa-solid fa-eye"></i>';
+  }
+}
+</script>
+{% endblock %}
