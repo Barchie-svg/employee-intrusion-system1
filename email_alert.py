@@ -20,7 +20,7 @@ def send_alert(username, reason):
         f"Time     : {now}\n"
         f"{'='*40}\n\n"
         f"Please log in to the admin dashboard immediately to review and take action.\n"
-        f"http://127.0.0.1:5000/admin/login\n"
+        f"{__import__('os').environ.get('APP_URL', 'your-app-url')}/admin/login\n"
     )
 
     try:
