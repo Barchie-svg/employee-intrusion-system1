@@ -275,18 +275,14 @@ def forgot_password():
         user = get_employee_by_email_only(email)
 
         if user and user.get("role") != "Admin":
-            token = secrets.token_urlsafe(32)
+            # Generate a 6-digit OTP instead of a 32-byte URL token
+            token = "".join(str(secrets.randbelow(10)) for _ in range(6))
             expires_at = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
 
             try:
                 create_password_reset_token(user["id"], token, expires_at)
-                import os
-                app_url = os.environ.get('APP_URL', request.host_url.rstrip('/'))
-                reset_url = f"{app_url}/employee/reset-password/{token}"
-                reset_url_for_display = reset_url
-
                 print(f"\n[PASSWORD RESET] User: {email}")
-                print(f"[PASSWORD RESET] Reset URL: {reset_url}")
+                print(f"[PASSWORD RESET] OTP Code: {token}")
                 print(f"[PASSWORD RESET] Expires at: {expires_at}\n")
 
                 email_sent = False
@@ -294,60 +290,67 @@ def forgot_password():
                     send_alert(
                         message=(
                             f"Password reset requested for: {email}\n\n"
-                            f"Reset link (valid 1 hour):\n{reset_url}\n\n"
-                            f"If you did not request this, please ignore this email."
+                            f"Your 6-digit verification code is:\n\n    {token}\n\n"
+                            f"This code will expire in 1 hour. If you did not request this, please ignore this email."
                         ),
-                        subject="Password Reset Request — Employee System"
+                        subject="Password Verification Code — Employee System"
                     )
                     email_sent = True
                 except Exception as mail_err:
                     print(f"[WARN] Email not sent: {mail_err}")
 
                 if email_sent:
-                    flash("A password reset link has been sent to your email. It expires in 1 hour.", "success")
+                    flash("A 6-digit verification code has been sent to your email. Please enter it below.", "success")
+                    return redirect("/employee/reset-password")
                 else:
-                    flash("Email delivery is not configured. Use the reset link shown below — it expires in 1 hour.", "warning")
+                    flash("Email delivery failed securely. Password reset unavailable. Please contact the Admin.", "danger")
+                    return redirect("/employee/forgot-password")
 
             except Exception as e:
                 print(f"[ERROR] Could not create reset token: {e}")
                 flash(
-                    "Could not generate a reset link. Make sure the password_reset_tokens "
-                    "table exists in Supabase (run supabase_fix.sql).",
+                    "Could not generate a verification code. Secure system misconfigured.",
                     "danger"
                 )
-                return render_template("forgot_password.html", reset_url=None)
+                return redirect("/employee/forgot-password")
         else:
-            flash("If that email is registered, a password reset link has been generated.", "info")
+            # Prevent email enumeration attacks safely
+            flash("If that email is registered, a verification code has been securely sent.", "info")
 
-        return render_template("forgot_password.html", reset_url=reset_url_for_display)
+        return redirect("/employee/reset-password")
 
     return render_template("forgot_password.html", reset_url=None)
 
 
-@app.route("/employee/reset-password/<token>", methods=["GET", "POST"])
-def reset_password(token):
-    """Use a reset token to set a new password."""
-    token_record = get_password_reset_token(token)
-
-    if not token_record:
-        flash("This reset link is invalid or has already been used.", "danger")
-        return redirect("/")
-
-    # Check expiry
-    try:
-        expires_at = datetime.fromisoformat(token_record["expires_at"].replace("Z", "+00:00"))
-        if datetime.now(timezone.utc) > expires_at:
-            delete_password_reset_token(token)
-            flash("This reset link has expired. Please request a new one.", "danger")
-            return redirect("/employee/forgot-password")
-    except Exception:
-        delete_password_reset_token(token)
-        flash("Invalid reset link.", "danger")
-        return redirect("/")
-
+@app.route("/employee/reset-password", methods=["GET", "POST"])
+def reset_password():
+    """Use a 6-digit OTP code to set a new password."""
     if request.method == "POST":
+        token = request.form.get("token", "").strip()
         new_password = request.form.get("password", "")
         confirm      = request.form.get("confirm_password", "")
+
+        token_record = get_password_reset_token(token)
+
+        if not token_record:
+            flash("The verification code is incorrect or has already been used.", "danger")
+            return redirect("/employee/reset-password")
+
+        # Check expiry
+        try:
+            expires_at = datetime.fromisoformat(token_record["expires_at"].replace("Z", "+00:00"))
+            if datetime.now(timezone.utc) > expires_at:
+                delete_password_reset_token(token)
+                flash("This verification code has expired. Please request a new one.", "danger")
+                return redirect("/employee/forgot-password")
+        except Exception:
+            delete_password_reset_token(token)
+            flash("Invalid verification code.", "danger")
+            return redirect("/employee/reset-password")
+
+        if new_password != confirm:
+            flash("Passwords do not match.", "danger")
+            return redirect("/employee/reset-password")
 
         if new_password != confirm:
             flash("Passwords do not match.", "danger")
