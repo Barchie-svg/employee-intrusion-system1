@@ -1,223 +1,798 @@
-{% extends "layout.html" %}
+{% extends "layout.html" %} 
+{% block navbar %}{% endblock %}
+{% block flash_messages %}{% endblock %}
 {% block content %}
-<div class="main-container">
+<style>
+/* Dashboard Layout */
+body {
+  overflow: hidden; /* Prevent full page scroll, handle inside layout */
+}
 
-  <!-- Page Header -->
-  <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-    <div>
-      <h1 class="page-title">
-        <i class="fa-solid fa-gauge me-2" style="color: var(--accent);"></i>Admin Dashboard
-      </h1>
-      <p class="page-subtitle">
-        Welcome back, <strong style="color: var(--text-primary);">{{ session.get('admin_username', 'Admin') }}</strong>
-        &nbsp;·&nbsp; Overview of all employees and security events
-      </p>
+.dashboard-layout {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+/* Sidebar */
+.sidebar {
+  width: 260px;
+  background: rgba(26, 29, 46, 0.95);
+  backdrop-filter: blur(16px);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: width 0.3s ease;
+  z-index: 100;
+}
+.sidebar.collapsed {
+  width: 80px;
+}
+.sidebar-header {
+  padding: 24px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sidebar.collapsed .brand-text {
+  display: none;
+}
+.brand-icon {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--accent), #7c3aed);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 15px var(--accent-glow);
+}
+.toggle-sidebar {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 1.1rem;
+  padding: 4px;
+}
+.toggle-sidebar:hover {
+  color: white;
+}
+
+/* Nav Menu */
+.sidebar-nav {
+  padding: 24px 12px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  color: var(--text-secondary);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.nav-item i {
+  font-size: 1.1rem;
+  width: 24px;
+  text-align: center;
+}
+.nav-item:hover {
+  background: rgba(255,255,255,0.05);
+  color: white;
+}
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(79, 110, 247, 0.15), transparent);
+  color: var(--accent);
+  border-left: 3px solid var(--accent);
+}
+.sidebar.collapsed .nav-text {
+  display: none;
+}
+.sidebar.collapsed .nav-item {
+  padding: 12px;
+  justify-content: center;
+}
+.sidebar.collapsed .nav-item i {
+  margin: 0;
+}
+
+/* User Profile Info bottom */
+.sidebar-footer {
+  padding: 20px;
+  border-top: 1px solid rgba(255,255,255,0.05);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.sidebar-footer .avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--bg-card-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+.sidebar-footer .user-info {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sidebar-footer .user-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: white;
+}
+.sidebar-footer .user-role {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+.sidebar-footer .logout-btn {
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.sidebar-footer .logout-btn:hover {
+  color: var(--danger);
+}
+.sidebar.collapsed .user-info, 
+.sidebar.collapsed .logout-btn {
+  display: none;
+}
+
+/* Main Content Area */
+.dashboard-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  background-image:
+    radial-gradient(ellipse at 20% 20%, rgba(79, 110, 247, 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(45, 212, 167, 0.03) 0%, transparent 50%);
+}
+
+.topbar {
+  height: 70px;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: rgba(13, 15, 26, 0.6);
+  backdrop-filter: blur(12px);
+  z-index: 10;
+}
+.topbar-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.content-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 32px;
+}
+
+/* Tab Sections */
+.tab-section {
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+.tab-section.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Adjust stats grid inside dashboard */
+.stats-grid { margin-bottom: 32px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sidebar {
+    position: absolute;
+    height: 100%;
+    transform: translateX(-100%);
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  .mobile-toggle {
+    display: block !important;
+  }
+  .content-scroll { padding: 20px; }
+}
+.mobile-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  margin-right: 16px;
+}
+</style>
+
+<div class="dashboard-layout">
+  
+  <!-- ====== SIDEBAR ====== -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="brand">
+        <div class="brand-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        <span class="brand-text">Admin Panel</span>
+      </div>
+      <button class="toggle-sidebar" onclick="toggleSidebar()"><i class="fa-solid fa-bars-staggered"></i></button>
     </div>
-    <a href="/admin/logout" class="btn-sm-action btn-delete" style="padding: 10px 18px; font-size: 0.88rem; border-radius: 10px;">
-      <i class="fa-solid fa-right-from-bracket"></i> Logout
-    </a>
-  </div>
 
-  <!-- ===== Stats Cards ===== -->
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
-      <div>
-        <div class="stat-value">{{ stats.total_employees }}</div>
-        <div class="stat-label">Total Employees</div>
+    <div class="sidebar-nav">
+      <div class="nav-item active" onclick="switchTab('overview', this)">
+        <i class="fa-solid fa-house"></i>
+        <span class="nav-text">Overview</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('employees', this)">
+        <i class="fa-solid fa-users"></i>
+        <span class="nav-text">Employees</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('logs', this)">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span class="nav-text">Intrusion Logs</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('audit', this)">
+        <i class="fa-solid fa-list-check"></i>
+        <span class="nav-text">Audit Trails</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('settings', this)">
+        <i class="fa-solid fa-gear"></i>
+        <span class="nav-text">Settings</span>
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon red"><i class="fa-solid fa-lock"></i></div>
-      <div>
-        <div class="stat-value">{{ stats.locked_accounts }}</div>
-        <div class="stat-label">Locked Accounts</div>
+
+    <div class="sidebar-footer">
+      <div class="avatar">{{ session.get('admin_username', 'A')[0].upper() }}</div>
+      <div class="user-info">
+        <div class="user-name">{{ session.get('admin_username', 'Admin') }}</div>
+        <div class="user-role">System Administrator</div>
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon orange"><i class="fa-solid fa-triangle-exclamation"></i></div>
-      <div>
-        <div class="stat-value">{{ stats.total_intrusions }}</div>
-        <div class="stat-label">Intrusion Events</div>
+    <div style="padding: 0 20px 20px;">
+      <a href="/admin/logout" class="btn-primary-custom" style="width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.9rem; padding: 10px; background: rgba(231, 76, 107, 0.1); border: 1px solid rgba(231, 76, 107, 0.2); color: var(--danger); box-shadow: none;">
+        <i class="fa-solid fa-right-from-bracket"></i> Logout
+      </a>
+    </div>
+  </aside>
+
+  <!-- ====== MAIN CONTENT ====== -->
+  <main class="dashboard-content">
+    
+    <div class="topbar">
+      <div style="display:flex; align-items:center;">
+        <button class="mobile-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+        <div class="topbar-title" id="topbar-title">Dashboard Overview</div>
+      </div>
+      
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <button onclick="toggleTheme()" class="btn-primary-custom" style="padding: 8px 16px; font-size: 0.85rem; background: transparent; color: var(--text-secondary); border: 1px solid var(--border); box-shadow: none;" aria-label="Toggle Theme">
+          <i class="fa-solid fa-moon theme-icon me-2"></i> Theme
+        </button>
+        <button class="btn-primary-custom" style="padding: 8px 16px; font-size: 0.85rem;" onclick="openAddModal()">
+          <i class="fa-solid fa-user-plus me-2"></i> Add Employee
+        </button>
+        <a href="/admin/logout" class="btn-primary-custom" style="padding: 8px 16px; font-size: 0.85rem; background: rgba(231, 76, 107, 0.15); border: 1px solid rgba(231, 76, 107, 0.3); color: var(--danger); box-shadow: none;">
+          <i class="fa-solid fa-right-from-bracket me-2"></i> Logout
+        </a>
       </div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon green"><i class="fa-solid fa-user-check"></i></div>
-      <div>
-        <div class="stat-value">{{ stats.total_employees - stats.locked_accounts }}</div>
-        <div class="stat-label">Active Accounts</div>
+
+    <div class="content-scroll">
+      <!-- Flash Messages -->
+      <div class="flash-container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert-custom alert-{{ category }}">
+                <i class="fa-solid fa-circle-info"></i>
+                {{ message }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
       </div>
-    </div>
-  </div>
 
-  <!-- ===== Chart ===== -->
-  {% if logs %}
-  <div class="chart-container mb-4">
-    <div class="card-header-dark" style="background: transparent; border: none; padding: 0 0 16px 0;">
-      <i class="fa-solid fa-chart-bar" style="color: var(--accent);"></i>
-      Intrusion Events (Last 10)
-    </div>
-    <canvas id="intrusionChart" height="90"></canvas>
-  </div>
-  {% endif %}
+      <!-- ====== TAB: OVERVIEW ====== -->
+      <section id="tab-overview" class="tab-section active">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue"><i class="fa-solid fa-users"></i></div>
+            <div>
+              <div class="stat-value">{{ stats.total_employees }}</div>
+              <div class="stat-label">Total Employees</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red"><i class="fa-solid fa-lock"></i></div>
+            <div>
+              <div class="stat-value">{{ stats.locked_accounts }}</div>
+              <div class="stat-label">Locked Accounts</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon orange">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+              <div class="stat-value">{{ stats.total_intrusions }}</div>
+              <div class="stat-label">Intrusion Events</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green"><i class="fa-solid fa-user-check"></i></div>
+            <div>
+              <div class="stat-value">
+                {{ stats.total_employees - stats.locked_accounts }}
+              </div>
+              <div class="stat-label">Active Accounts</div>
+            </div>
+          </div>
+        </div>
 
-  <!-- ===== Employees Table ===== -->
-  <div class="section-title">
-    <i class="fa-solid fa-users" style="color: var(--accent);"></i>
-    Employees
-  </div>
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
+          {% if logs %}
+          <div class="chart-container" style="margin-bottom: 0;">
+            <div class="card-header-dark" style="background: transparent; border: none; padding: 0 0 16px 0">
+              <i class="fa-solid fa-chart-bar" style="color: var(--accent)"></i> Activity Overview
+            </div>
+            <canvas id="intrusionChart" height="200"></canvas>
+          </div>
+          {% endif %}
+          
+          <div class="chart-container" style="margin-bottom: 0;">
+            <div class="card-header-dark" style="background: transparent; border: none; padding: 0 0 16px 0">
+              <i class="fa-solid fa-chart-pie" style="color: var(--warning)"></i> Account Status
+            </div>
+            <canvas id="accountsChart" height="200"></canvas>
+          </div>
+        </div>
+      </section>
 
-  <div class="card-dark mb-5">
-    {% if employees %}
-    <div style="overflow-x: auto;">
-      <table class="table-dark-custom" id="employees-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Username</th>
-            <th>Employee No.</th>
-            <th>Email</th>
-            <th>Status</th>
-            <th>Failed Attempts</th>
-            <th>Last Login</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for emp in employees %}
-          <tr>
-            <td style="color: var(--text-secondary);">{{ loop.index }}</td>
-            <td>
-              <div style="display:flex; align-items:center; gap:10px;">
-                <div style="width:32px; height:32px; background: linear-gradient(135deg, var(--accent), #7c3aed);
-                  border-radius: 50%; display:flex; align-items:center; justify-content:center;
-                  font-size:0.8rem; font-weight:700; color:white; flex-shrink:0;">
-                  {{ emp.name[0].upper() }}
+      <!-- ====== TAB: EMPLOYEES ====== -->
+      <section id="tab-employees" class="tab-section">
+        <div class="card-dark">
+          {% if employees %}
+          <div style="overflow-x: auto">
+            <table class="table-dark-custom" id="employees-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>ID / Username</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                  <th>Failed</th>
+                  <th>Last IP</th>
+                  <th>Last Login</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for emp in employees %}
+                <tr>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 10px">
+                      <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; color: white; flex-shrink: 0;">
+                        {{ (emp.name[0] if emp.name else (emp.username[0] if emp.username else 'U')).upper() }}
+                      </div>
+                      <div>
+                        <strong>{{ emp.name }}</strong>
+                        <div style="font-size:0.75rem; color:var(--text-secondary)">{{ emp.email }}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <div>{{ emp.employee_number }}</div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary)">{{ emp.username }}</div>
+                  </td>
+                  <td>
+                    <span style="background: rgba(99, 102, 241, 0.15); color: #818cf8; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">
+                      {{ emp.role if emp.role is defined and emp.role else 'Employee' }}
+                    </span>
+                  </td>
+                  <td>
+                    {% if emp.status == "Active" %}
+                    <span class="badge-status badge-active">Active</span>
+                    {% else %}
+                    <span class="badge-status badge-locked">Locked</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span style="{% if emp.failed_attempts >= 2 %}color: var(--warning); font-weight:700;{% endif %}">
+                      {{ emp.failed_attempts }}
+                    </span>
+                  </td>
+                  <td style="color: var(--text-secondary); font-size: 0.82rem">
+                    {{ emp.last_ip_address if emp.last_ip_address else '—' }}
+                  </td>
+                  <td style="color: var(--text-secondary); font-size: 0.82rem">
+                    {% if emp.last_login %} {{ emp.last_login.strftime('%Y-%m-%d %H:%M') }} {% else %} — {% endif %}
+                  </td>
+                  <td>
+                    <div style="display: flex; gap: 6px;">
+                      {% if emp.status == "Locked" %}
+                      <a href="/admin/unlock/{{ emp.id }}" class="btn-sm-action btn-unlock" title="Unlock">
+                        <i class="fa-solid fa-unlock"></i>
+                      </a>
+                      {% else %}
+                      <a href="/admin/lock/{{ emp.id }}" class="btn-sm-action btn-lock" title="Lock">
+                        <i class="fa-solid fa-lock"></i>
+                      </a>
+                      {% endif %}
+                      <a href="/admin/delete/{{ emp.id }}" class="btn-sm-action btn-delete" onclick="return confirm('Delete {{ emp.username }}? This cannot be undone.')" title="Delete">
+                        <i class="fa-solid fa-trash"></i>
+                      </a>
+                      <button onclick="openResetModal('{{ emp.id }}', '{{ emp.username }}')" class="btn-sm-action" style="background: rgba(255, 193, 7, 0.15); color: #ffc107; border: 1px solid rgba(255, 193, 7, 0.3);" title="Reset Password">
+                        <i class="fa-solid fa-key"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state">
+            <i class="fa-solid fa-users-slash"></i>
+            <p>No employees registered yet.</p>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- ====== TAB: LOGS ====== -->
+      <section id="tab-logs" class="tab-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="font-size: 1.1rem; margin:0;"><i class="fa-solid fa-shield-halved" style="color:var(--danger)"></i> Security Events</h3>
+          <a href="/admin/export/logs" class="btn-primary-custom" style="width: auto; padding: 8px 16px; font-size:0.85rem; background: rgba(255,255,255,0.05); color:white; border: 1px solid var(--border); box-shadow:none;">
+            <i class="fa-solid fa-download me-2"></i> Export CSV
+          </a>
+        </div>
+        <div class="card-dark">
+          {% if logs %}
+          <div style="overflow-x: auto">
+            <table class="table-dark-custom" id="logs-table">
+              <thead>
+                <tr>
+                  <th>Username</th>
+                  <th>Reason</th>
+                  <th>IP Address</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for log in logs %}
+                <tr>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 8px">
+                      <div style="width: 28px; height: 28px; background: var(--danger-soft); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: var(--danger); flex-shrink: 0;">
+                        {{ log.username[0].upper() if log.username else '?' }}
+                      </div>
+                      <strong>{{ log.username }}</strong>
+                    </div>
+                  </td>
+                  <td>
+                    <span style="background: var(--danger-soft); color: var(--danger); padding: 5px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 500;">
+                      <i class="fa-solid fa-circle-exclamation me-1"></i>{{ log.reason }}
+                    </span>
+                  </td>
+                  <td style="color: var(--text-secondary); font-size: 0.85rem">
+                    {{ log.ip_address if log.ip_address else 'Unknown' }}
+                  </td>
+                  <td style="color: var(--text-secondary); font-size: 0.85rem">
+                    {% if log.timestamp %} {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} {% else %} — {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state">
+            <i class="fa-solid fa-shield-check" style="color: var(--success); opacity:1;"></i>
+            <p>No intrusion events detected. System is secure.</p>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- ====== TAB: AUDIT TRAILS ====== -->
+      <section id="tab-audit" class="tab-section">
+        <div class="card-dark">
+          {% if audit_logs %}
+          <div style="overflow-x: auto">
+            <table class="table-dark-custom">
+              <thead>
+                <tr>
+                  <th>Admin</th>
+                  <th>Action</th>
+                  <th>Target</th>
+                  <th>IP Address</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for audit in audit_logs %}
+                <tr>
+                  <td><strong>{{ audit.admin_username }}</strong></td>
+                  <td>
+                    <span style="background: rgba(56, 189, 248, 0.15); color: var(--info); padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600;">
+                      {{ audit.action }}
+                    </span>
+                  </td>
+                  <td>{{ audit.target }}</td>
+                  <td style="color: var(--text-secondary); font-size: 0.85rem">{{ audit.ip_address if audit.ip_address else 'Unknown' }}</td>
+                  <td style="color: var(--text-secondary); font-size: 0.85rem">
+                    {% if audit.timestamp %} {{ audit.timestamp.strftime('%Y-%m-%d %H:%M:%S') }} {% else %} — {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state">
+            <i class="fa-solid fa-clipboard-check" style="opacity:0.6;"></i>
+            <p>No administrative actions have been logged yet.</p>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <!-- ====== TAB: SETTINGS ====== -->
+      <section id="tab-settings" class="tab-section">
+        <div class="card-dark" style="max-width: 600px;">
+          <div class="card-header-dark">
+            <i class="fa-solid fa-sliders"></i> Alert Notifications
+          </div>
+          <div class="card-body-dark">
+            <form method="POST" action="/admin/settings/update" autocomplete="off">
+              <div class="mb-4">
+                <label class="form-label"><i class="fa-solid fa-envelope-circle-check me-1"></i> Admin Target Email</label>
+                <input type="email" name="admin_email" class="form-control" value="{{ settings.admin_email }}" required />
+                <div class="form-text" style="color: rgba(255, 255, 255, 0.4); font-size: 0.8rem; margin-top: 6px;">
+                  The email address that will receive security alerts.
                 </div>
-                <strong>{{ emp.name }}</strong>
               </div>
-            </td>
-            <td style="color: var(--text-secondary);">{{ emp.username }}</td>
-            <td style="color: var(--text-secondary);">{{ emp.employee_number }}</td>
-            <td style="color: var(--text-secondary);">{{ emp.email }}</td>
-            <td>
-              {% if emp.status == "Active" %}
-                <span class="badge-status badge-active">Active</span>
-              {% else %}
-                <span class="badge-status badge-locked">Locked</span>
-              {% endif %}
-            </td>
-            <td>
-              <span style="{% if emp.failed_attempts >= 2 %}color: var(--warning); font-weight:600;{% endif %}">
-                {{ emp.failed_attempts }}
-              </span>
-            </td>
-            <td style="color: var(--text-secondary); font-size: 0.82rem;">
-              {% if emp.last_login %}
-                {{ emp.last_login.strftime('%Y-%m-%d %H:%M') }}
-              {% else %}
-                —
-              {% endif %}
-            </td>
-            <td>
-              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-                {% if emp.status == "Locked" %}
-                  <a href="/admin/unlock/{{ emp.id }}" class="btn-sm-action btn-unlock">
-                    <i class="fa-solid fa-unlock"></i> Unlock
-                  </a>
-                {% else %}
-                  <a href="/admin/lock/{{ emp.id }}" class="btn-sm-action btn-lock">
-                    <i class="fa-solid fa-lock"></i> Lock
-                  </a>
-                {% endif %}
-                <a href="/admin/delete/{{ emp.id }}" class="btn-sm-action btn-delete"
-                  onclick="return confirm('Delete {{ emp.username }}? This cannot be undone.')">
-                  <i class="fa-solid fa-trash"></i> Delete
-                </a>
-              </div>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <div class="empty-state">
-      <i class="fa-solid fa-users-slash"></i>
-      <p>No employees registered yet.</p>
-    </div>
-    {% endif %}
-  </div>
-
-  <!-- ===== Intrusion Logs Table ===== -->
-  <div class="section-title">
-    <i class="fa-solid fa-triangle-exclamation" style="color: var(--danger);"></i>
-    Intrusion Logs
-  </div>
-
-  <div class="card-dark mb-5">
-    {% if logs %}
-    <div style="overflow-x: auto;">
-      <table class="table-dark-custom" id="logs-table">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Username</th>
-            <th>Reason</th>
-            <th>Timestamp</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for log in logs %}
-          <tr>
-            <td style="color: var(--text-secondary);">{{ loop.index }}</td>
-            <td>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <div style="width:28px; height:28px; background: var(--danger-soft);
-                  border-radius: 50%; display:flex; align-items:center; justify-content:center;
-                  font-size:0.75rem; font-weight:700; color: var(--danger); flex-shrink:0;">
-                  {{ log.username[0].upper() if log.username else '?' }}
+              <div class="mb-4">
+                <label class="form-label"><i class="fa-solid fa-paper-plane me-1"></i> System Sender Email</label>
+                <input type="email" name="sender_email" class="form-control" value="{{ settings.sender_email }}" required />
+                <div class="form-text" style="color: rgba(255, 255, 255, 0.4); font-size: 0.8rem; margin-top: 6px;">
+                  The email address used to send the alerts.
                 </div>
-                <strong>{{ log.username }}</strong>
               </div>
-            </td>
-            <td>
-              <span style="background: var(--danger-soft); color: var(--danger);
-                padding: 3px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 500;">
-                <i class="fa-solid fa-circle-exclamation me-1"></i>{{ log.reason }}
-              </span>
-            </td>
-            <td style="color: var(--text-secondary); font-size: 0.85rem;">
-              {% if log.timestamp %}
-                {{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
-              {% else %}
-                —
-              {% endif %}
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% else %}
-    <div class="empty-state">
-      <i class="fa-solid fa-shield-halved"></i>
-      <p>No intrusion events detected. All clear!</p>
-    </div>
-    {% endif %}
-  </div>
+              <div class="mb-4">
+                <label class="form-label"><i class="fa-solid fa-key me-1"></i> SMTP App Password</label>
+                <input type="password" name="sender_password" class="form-control" value="{{ settings.sender_password }}" placeholder="App Password (e.g. for Gmail)" />
+                <div class="form-text" style="color: rgba(255, 255, 255, 0.4); font-size: 0.8rem; margin-top: 6px;">
+                  The app password for the sender email (Not your regular email password).
+                </div>
+              </div>
+              <div style="display: flex; justify-content: flex-end">
+                <button type="submit" class="btn-primary-custom" style="width: auto; padding: 12px 24px;">
+                  <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </section>
 
+    </div>
+  </main>
 </div>
-{% endblock %}
 
-{% block scripts %}
-{% if logs %}
+<!-- ===== Add Employee Modal ===== -->
+<div id="addEmpModal" style="display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+  <div style="background: var(--bg-card, #1a1d2e); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 18px; width: 100%; max-width: 520px; margin: 20px; padding: 32px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); animation: modalIn 0.2s ease;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h2 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">
+        <i class="fa-solid fa-user-plus me-2" style="color: var(--accent)"></i> Register Employee
+      </h2>
+      <button onclick="closeAddModal()" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 1.4rem;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form method="POST" action="/admin/register" autocomplete="off">
+      <div class="mb-3">
+        <label class="form-label"><i class="fa-solid fa-id-badge me-1"></i> Full Name</label>
+        <input type="text" name="name" class="form-control" placeholder="e.g. Jane Smith" required />
+      </div>
+      <div class="mb-3">
+        <label class="form-label"><i class="fa-solid fa-envelope me-1"></i> Email</label>
+        <input type="email" name="email" class="form-control" placeholder="e.g. jane@company.com" required />
+      </div>
+      <div class="row g-3 mb-3">
+        <div class="col">
+          <label class="form-label"><i class="fa-solid fa-hashtag me-1"></i> Employee No.</label>
+          <input type="text" name="employee_number" class="form-control" placeholder="e.g. EMP002" required />
+        </div>
+        <div class="col">
+          <label class="form-label"><i class="fa-solid fa-user-tag me-1"></i> Role</label>
+          <select name="role" class="form-select" style="background-color: rgba(255, 255, 255, 0.05); color: var(--text-primary); border: 1px solid rgba(255, 255, 255, 0.1);">
+            <option value="Employee" style="color: #000">Employee</option>
+            <option value="Admin" style="color: #000">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label"><i class="fa-solid fa-user me-1"></i> Username</label>
+        <input type="text" name="username" class="form-control" placeholder="e.g. janesmith" required />
+      </div>
+      <div class="mb-4">
+        <label class="form-label"><i class="fa-solid fa-lock me-1"></i> Password</label>
+        <div style="position: relative">
+          <input type="password" name="password" id="modalPwd" class="form-control" placeholder="Set a secure password" required pattern="(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}" title="Must be at least 8 characters, containing at least 1 number and 1 special character." style="padding-right: 44px !important" />
+          <span onclick="togglePwd('modalPwd', this)" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-secondary);">
+            <i class="fa-solid fa-eye"></i>
+          </span>
+        </div>
+        <div class="form-text" style="color: rgba(255, 255, 255, 0.4); font-size: 0.75rem; margin-top: 6px;">
+          Must be at least 8 characters, containing at least 1 number and 1 special character.
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px; justify-content: flex-end">
+        <button type="button" onclick="closeAddModal()" style="padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.12); background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 0.88rem;">Cancel</button>
+        <button type="submit" class="btn-primary-custom" style="padding: 10px 24px; font-size: 0.88rem; border-radius: 8px;">
+          Register Employee
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Reset Password Modal ===== -->
+<div id="resetPwdModal" style="display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+  <div style="background: var(--bg-card, #1a1d2e); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 18px; width: 100%; max-width: 450px; margin: 20px; padding: 32px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); animation: modalIn 0.2s ease;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h2 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">
+        <i class="fa-solid fa-key me-2" style="color: #ffc107"></i> Reset Password
+      </h2>
+      <button onclick="closeResetModal()" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 1.4rem;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 20px;">
+      Setting a new password for <strong id="resetTargetUser" style="color: white;">user</strong>.
+    </p>
+    <form id="resetPwdForm" method="POST" action="" autocomplete="off">
+      <div class="mb-4">
+        <label class="form-label"><i class="fa-solid fa-lock me-1"></i> New Password</label>
+        <div style="position: relative">
+          <input type="password" name="password" id="resetPwdInput" class="form-control" placeholder="Enter new password" required pattern="(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}" title="Must be at least 8 characters, containing at least 1 number and 1 special character." style="padding-right: 44px !important" />
+          <span onclick="togglePwd('resetPwdInput', this)" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-secondary);">
+            <i class="fa-solid fa-eye"></i>
+          </span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px; justify-content: flex-end">
+        <button type="button" onclick="closeResetModal()" style="padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.12); background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 0.88rem;">Cancel</button>
+        <button type="submit" class="btn-primary-custom" style="padding: 10px 24px; font-size: 0.88rem; border-radius: 8px; background: #ffc107; color: #000; border: none;">
+          Update Password
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+{% endblock %} 
+
+{% block scripts %} 
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  // Build chart from last 10 logs
+  // Tab Switching Logic
+  function switchTab(tabId, element) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-section').forEach(el => el.classList.remove('active'));
+    // Remove active class from all nav items
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    
+    // Show selected tab
+    document.getElementById('tab-' + tabId).classList.add('active');
+    // Set active nav item
+    element.classList.add('active');
+    
+    // Update Topbar Title
+    const map = {
+      'overview': 'Dashboard Overview',
+      'employees': 'Manage Employees',
+      'logs': 'Intrusion Events',
+      'audit': 'Administrator Audit Trails',
+      'settings': 'System Settings'
+    };
+    document.getElementById('topbar-title').innerText = map[tabId];
+
+    // On mobile, close sidebar after clicking
+    if(window.innerWidth <= 768) {
+      document.getElementById('sidebar').classList.remove('mobile-open');
+    }
+  }
+
+  // Sidebar Toggle
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if(window.innerWidth <= 768) {
+      sidebar.classList.toggle('mobile-open');
+    } else {
+      sidebar.classList.toggle('collapsed');
+    }
+  }
+
+  // Modals
+  function openResetModal(userId, username) {
+    document.getElementById("resetTargetUser").innerText = username;
+    document.getElementById("resetPwdForm").action = "/admin/reset_password/" + userId;
+    document.getElementById("resetPwdModal").style.display = "flex";
+  }
+  function closeResetModal() { document.getElementById("resetPwdModal").style.display = "none"; }
+
+  document.getElementById("addEmpModal").addEventListener("click", function (e) { if (e.target === this) closeAddModal(); });
+  document.getElementById("resetPwdModal").addEventListener("click", function (e) { if (e.target === this) closeResetModal(); });
+
+  // ── Add Employee Modal ──
+  function openAddModal() {
+    const modal = document.getElementById("addEmpModal");
+    modal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+  }
+  function closeAddModal() {
+    const modal = document.getElementById("addEmpModal");
+    modal.style.display = "none";
+    document.body.style.overflow = "";
+    // Clear the form fields on close
+    modal.querySelector("form").reset();
+  }
+
+  function togglePwd(fieldId, icon) {
+    const field = document.getElementById(fieldId);
+    if (field.type === "password") { field.type = "text"; icon.innerHTML = '<i class="fa-solid fa-eye-slash"></i>'; } 
+    else { field.type = "password"; icon.innerHTML = '<i class="fa-solid fa-eye"></i>'; }
+  }
+
+  // Chart Rendering
+  {% if logs %}
   const rawLogs = {{ logs | map(attribute='reason') | list | tojson }};
   const rawTimes = {{ logs | map(attribute='timestamp') | list | map('string') | list | tojson }};
-
   const last10Times = rawTimes.slice(0, 10).map(t => t.substring(0, 16));
   const last10Reasons = rawLogs.slice(0, 10);
 
@@ -237,29 +812,45 @@
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: function(ctx2) {
-              return 'Reason: ' + last10Reasons[ctx2.dataIndex];
-            }
-          }
-        }
+        tooltip: { callbacks: { label: function(ctx2) { return 'Reason: ' + last10Reasons[ctx2.dataIndex]; } } }
       },
       scales: {
-        x: {
-          ticks: { color: '#9da4c2', font: { size: 10 } },
-          grid: { color: 'rgba(255,255,255,0.05)' }
-        },
-        y: {
-          ticks: { color: '#9da4c2', stepSize: 1 },
-          grid: { color: 'rgba(255,255,255,0.05)' },
-          beginAtZero: true
-        }
+        x: { ticks: { color: '#9da4c2', font: { size: 10 } }, grid: { display: false } },
+        y: { ticks: { color: '#9da4c2', stepSize: 1 }, grid: { color: 'rgba(255,255,255,0.05)' }, beginAtZero: true }
+      }
+    }
+  });
+  {% endif %}
+
+  const ctxPie = document.getElementById('accountsChart').getContext('2d');
+  new Chart(ctxPie, {
+    type: 'doughnut',
+    data: {
+      labels: ['Active', 'Locked'],
+      datasets: [{
+        data: [{{ stats.total_employees - stats.locked_accounts }}, {{ stats.locked_accounts }}],
+        backgroundColor: ['rgba(45, 212, 167, 0.8)', 'rgba(231, 76, 107, 0.8)'],
+        borderColor: ['#2dd4a7', '#e74c6b'],
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '75%',
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#e8eaf6' } }
       }
     }
   });
 </script>
-{% endif %}
+<style>
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.95) translateY(-10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+</style>
 {% endblock %}

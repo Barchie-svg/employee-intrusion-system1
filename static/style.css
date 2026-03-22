@@ -30,6 +30,60 @@
   --transition: 0.25s ease;
 }
 
+/* Light Mode Overrides */
+body.light-mode {
+  --bg-primary: #f0f2f5;
+  --bg-secondary: #ffffff;
+  --bg-card: #ffffff;
+  --bg-card-hover: #f8f9fa;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --border: rgba(0, 0, 0, 0.1);
+  --shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+body.light-mode .card-header-dark, 
+body.light-mode .table-dark-custom thead th {
+  background: rgba(0,0,0,0.03);
+}
+
+body.light-mode .table-dark-custom tbody tr {
+  border-bottom: 1px solid rgba(0,0,0,0.05);
+}
+
+body.light-mode .table-dark-custom tbody tr:hover {
+  background: rgba(0,0,0,0.02);
+}
+
+body.light-mode .sidebar {
+  background: #ffffff;
+  border-right: 1px solid var(--border);
+}
+
+body.light-mode .nav-item:hover {
+  background: rgba(0, 0, 0, 0.04);
+  color: var(--text-primary);
+}
+
+body.light-mode .navbar {
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+body.light-mode .topbar {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+body.light-mode input.form-control {
+  background: #ffffff !important;
+  color: #1e293b !important;
+}
+
+body.light-mode select.form-select {
+  background: #ffffff !important;
+  color: #1e293b !important;
+}
+
 /* ---------- Reset & Base ---------- */
 *,
 *::before,
@@ -47,18 +101,8 @@ body {
   font-family: "Inter", sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  min-height: 100vh;
-  background-image:
-    radial-gradient(
-      ellipse at 20% 20%,
-      rgba(79, 110, 247, 0.08) 0%,
-      transparent 50%
-    ),
-    radial-gradient(
-      ellipse at 80% 80%,
-      rgba(45, 212, 167, 0.05) 0%,
-      transparent 50%
-    );
+  margin: 0;
+  padding: 0;
 }
 
 a {
@@ -131,9 +175,7 @@ a:hover {
 
 /* ---------- Main Container ---------- */
 .main-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 40px 20px;
+  width: 100%;
 }
 
 /* ---------- Auth Pages (Login / Register) ---------- */

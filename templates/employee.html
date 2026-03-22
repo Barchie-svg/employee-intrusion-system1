@@ -8,9 +8,6 @@
       <h1 class="page-title"><i class="fa-solid fa-id-card me-2" style="color: var(--accent);"></i>My Dashboard</h1>
       <p class="page-subtitle">Your personal account information and security status</p>
     </div>
-    <a href="/logout" class="btn-sm-action btn-delete" style="padding: 10px 18px; font-size: 0.88rem; border-radius: 10px;">
-      <i class="fa-solid fa-right-from-bracket"></i> Logout
-    </a>
   </div>
 
   <!-- Profile Card -->
@@ -19,9 +16,9 @@
     <!-- Profile Header -->
     <div class="profile-header">
       <div class="profile-avatar">
-        {{ employee.name[0].upper() }}
+        {{ (employee.name[0] if employee.name else (employee.username[0] if employee.username else 'U')).upper() }}
       </div>
-      <div class="profile-name">{{ employee.name }}</div>
+      <div class="profile-name">{{ employee.name or employee.username or "Employee" }}</div>
       <div style="margin-top: 8px;">
         {% if employee.status == "Active" %}
           <span class="badge-status badge-active">
@@ -81,6 +78,17 @@
         <span class="info-value">
           {% if employee.last_login %}
             {{ employee.last_login.strftime('%Y-%m-%d %H:%M:%S') }} UTC
+          {% else %}
+            <span style="color: var(--text-secondary);">N/A</span>
+          {% endif %}
+        </span>
+      </div>
+
+      <div class="info-row">
+        <span class="info-label"><i class="fa-solid fa-network-wired"></i> Last Known IP</span>
+        <span class="info-value">
+          {% if employee.last_ip_address %}
+            {{ employee.last_ip_address }}
           {% else %}
             <span style="color: var(--text-secondary);">N/A</span>
           {% endif %}
