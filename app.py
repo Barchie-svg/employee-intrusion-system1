@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 from flask_session import Session
 import bcrypt
 import re
-import secrets
+import random
 from datetime import datetime, timedelta, timezone
 from config import SECRET_KEY
 from intrusion import is_suspicious_time
@@ -255,15 +255,13 @@ def logout():
 # ─────────────────────────────────────────────
 
 # ─────────────────────────────────────────────
-#  Forgot Password (Employee)
+#  Forgot Password (Employee) — 6-digit OTP flow
 # ─────────────────────────────────────────────
 @app.route("/employee/forgot-password", methods=["GET", "POST"])
 def forgot_password():
-    """Request a password reset link."""
+    """Send a 6-digit OTP to the employee's registered email."""
     if session.get("employee_logged_in") or session.get("admin_logged_in"):
         return redirect("/")
-
-    reset_url_for_display = None
 
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
@@ -275,84 +273,93 @@ def forgot_password():
         user = get_employee_by_email_only(email)
 
         if user and user.get("role") != "Admin":
-            # Generate a 6-digit OTP instead of a 32-byte URL token
-            token = "".join(str(secrets.randbelow(10)) for _ in range(6))
-            expires_at = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+            # Generate a 6-digit numeric OTP (stored as the "token" field)
+            otp = str(random.randint(100000, 999999))
+            expires_at = (datetime.now(timezone.utc) + timedelta(minutes=15)).isoformat()
 
             try:
-                create_password_reset_token(user["id"], token, expires_at)
-                print(f"\n[PASSWORD RESET] User: {email}")
-                print(f"[PASSWORD RESET] OTP Code: {token}")
-                print(f"[PASSWORD RESET] Expires at: {expires_at}\n")
+                # create_password_reset_token already deletes old tokens internally
+                create_password_reset_token(user["id"], otp, expires_at)
+
+                print(f"[OTP RESET] Generated OTP for {email}: {otp} (expires: {expires_at})")
 
                 email_sent = False
                 try:
                     send_alert(
                         message=(
-                            f"Password reset requested for: {email}\n\n"
-                            f"Your 6-digit verification code is:\n\n    {token}\n\n"
-                            f"This code will expire in 1 hour. If you did not request this, please ignore this email."
+                            f"Hello,\n\n"
+                            f"A password reset was requested for your account ({email}).\n\n"
+                            f"Your One-Time Password (OTP) is:\n\n"
+                            f"    {otp}\n\n"
+                            f"Enter this code on the Reset Password page along with your email address.\n"
+                            f"This code expires in 15 minutes.\n\n"
+                            f"If you did not request this, please ignore this email — your password will not change."
                         ),
-                        subject="Password Verification Code — Employee System"
+                        subject="Your Password Reset Code — Employee System",
+                        to_email=email   # send directly to the employee, NOT the admin
                     )
                     email_sent = True
                 except Exception as mail_err:
-                    print(f"[WARN] Email not sent: {mail_err}")
+                    print(f"[WARN] OTP email not sent: {mail_err}")
 
                 if email_sent:
-                    flash("A 6-digit verification code has been sent to your email. Please enter it below.", "success")
-                    return redirect("/employee/reset-password")
+                    flash("A 6-digit reset code has been sent to your email address. Enter it below.", "success")
                 else:
-                    flash("Email delivery failed securely. Password reset unavailable. Please contact the Admin.", "danger")
+                    flash("Could not send the reset code email. Please contact your administrator.", "danger")
                     return redirect("/employee/forgot-password")
 
             except Exception as e:
-                print(f"[ERROR] Could not create reset token: {e}")
-                flash(
-                    "Could not generate a verification code. Secure system misconfigured.",
-                    "danger"
-                )
+                print(f"[ERROR] Could not create OTP token: {e}")
+                flash("Could not process your reset request at this time. Please try again.", "danger")
                 return redirect("/employee/forgot-password")
         else:
-            # Prevent email enumeration attacks safely
-            flash("If that email is registered, a verification code has been securely sent.", "info")
+            # Always show same message to prevent email enumeration
+            flash("If that email is registered, a reset code has been sent.", "info")
 
+        # Redirect to reset page so user can enter email + OTP
         return redirect("/employee/reset-password")
 
-    return render_template("forgot_password.html", reset_url=None)
+    return render_template("forgot_password.html")
 
 
 @app.route("/employee/reset-password", methods=["GET", "POST"])
 def reset_password():
-    """Use a 6-digit OTP code to set a new password."""
+    """Verify email + 6-digit OTP then set a new password."""
     if request.method == "POST":
         email        = request.form.get("email", "").strip().lower()
-        token        = request.form.get("token", "").strip()
+        otp          = request.form.get("token", "").strip()
         new_password = request.form.get("password", "")
         confirm      = request.form.get("confirm_password", "")
 
-        token_record = get_password_reset_token(token)
+        # Validate OTP is 6 digits
+        if not otp.isdigit() or len(otp) != 6:
+            flash("Please enter the 6-digit code sent to your email.", "danger")
+            return redirect("/employee/reset-password")
+
+        # Look up the OTP in the DB
+        token_record = get_password_reset_token(otp)
 
         if not token_record:
-            flash("The verification code is incorrect or has already been used.", "danger")
+            flash("Incorrect code. Please check your email and try again.", "danger")
             return redirect("/employee/reset-password")
-            
+
+        # Verify the email matches the OTP owner
         user = get_employee_by_email_only(email)
-        if not user or user["id"] != token_record["user_id"]:
-            flash("The verification code does not match the provided email address.", "danger")
+        if not user or str(user["id"]) != str(token_record["user_id"]):
+            flash("This code does not match the provided email address.", "danger")
             return redirect("/employee/reset-password")
 
         # Check expiry
         try:
             expires_at = datetime.fromisoformat(token_record["expires_at"].replace("Z", "+00:00"))
             if datetime.now(timezone.utc) > expires_at:
-                delete_password_reset_token(token)
-                flash("This verification code has expired. Please request a new one.", "danger")
+                delete_password_reset_token(otp)
+                flash("This code has expired. Please request a new one.", "danger")
                 return redirect("/employee/forgot-password")
         except Exception:
-            delete_password_reset_token(token)
-            flash("Invalid verification code.", "danger")
-            return redirect("/employee/reset-password")
+            delete_password_reset_token(otp)
+            flash("Invalid verification code. Please request a new one.", "danger")
+            return redirect("/employee/forgot-password")
 
         if new_password != confirm:
             flash("Passwords do not match.", "danger")
@@ -360,21 +367,20 @@ def reset_password():
 
         if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$', new_password):
             flash("Password must be at least 8 characters and include a letter, a number, and a special character.", "danger")
-            return render_template("reset_password.html", token=token)
+            return redirect("/employee/reset-password")
 
         try:
             hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
             update_employee_password(token_record["user_id"], hashed)
-            # Also unlock account in case it was locked
             unlock_employee(token_record["user_id"])
-            delete_password_reset_token(token)
+            delete_password_reset_token(otp)
             flash("✅ Your password has been reset successfully. You can now log in.", "success")
             return redirect("/")
         except Exception as e:
             flash(f"Failed to reset password: {e}", "danger")
-            return render_template("reset_password.html", token=token)
+            return redirect("/employee/reset-password")
 
-    return render_template("reset_password.html", token=token)
+    return render_template("reset_password.html")
 
 
 # ─────────────────────────────────────────────
