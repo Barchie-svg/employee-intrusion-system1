@@ -326,7 +326,8 @@ def forgot_password():
 def reset_password():
     """Use a 6-digit OTP code to set a new password."""
     if request.method == "POST":
-        token = request.form.get("token", "").strip()
+        email        = request.form.get("email", "").strip().lower()
+        token        = request.form.get("token", "").strip()
         new_password = request.form.get("password", "")
         confirm      = request.form.get("confirm_password", "")
 
@@ -334,6 +335,11 @@ def reset_password():
 
         if not token_record:
             flash("The verification code is incorrect or has already been used.", "danger")
+            return redirect("/employee/reset-password")
+            
+        user = get_employee_by_email_only(email)
+        if not user or user["id"] != token_record["user_id"]:
+            flash("The verification code does not match the provided email address.", "danger")
             return redirect("/employee/reset-password")
 
         # Check expiry
@@ -351,10 +357,6 @@ def reset_password():
         if new_password != confirm:
             flash("Passwords do not match.", "danger")
             return redirect("/employee/reset-password")
-
-        if new_password != confirm:
-            flash("Passwords do not match.", "danger")
-            return render_template("reset_password.html", token=token)
 
         if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$', new_password):
             flash("Password must be at least 8 characters and include a letter, a number, and a special character.", "danger")

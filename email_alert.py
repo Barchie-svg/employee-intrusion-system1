@@ -43,8 +43,10 @@ def send_alert(message: str, subject: str = None):
 
     def _send_async():
         try:
-            # Added a 5-second timeout to prevent Render from hanging
-            with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=5) as smtp:
+            # Switched to TLS port 587 with a 10s timeout to bypass Render network blocks
+            with smtplib.SMTP('smtp.gmail.com', 587, timeout=10) as smtp:
+                smtp.ehlo()
+                smtp.starttls()
                 smtp.login(sender_email, sender_password)
                 smtp.send_message(msg)
                 print(f"[EMAIL] Alert sent to {admin_email} | Subject: {email_subject}")
