@@ -280,7 +280,9 @@ def forgot_password():
 
             try:
                 create_password_reset_token(user["id"], token, expires_at)
-                reset_url = url_for("reset_password", token=token, _external=True)
+                import os
+                app_url = os.environ.get('APP_URL', request.host_url.rstrip('/'))
+                reset_url = f"{app_url}/employee/reset-password/{token}"
                 reset_url_for_display = reset_url
 
                 print(f"\n[PASSWORD RESET] User: {email}")

@@ -41,13 +41,20 @@ def send_alert(message: str, subject: str = None):
         f"{__import__('os').environ.get('APP_URL', 'http://localhost:5000')}/admin/dashboard\n"
     )
 
-    try:
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-            smtp.login(sender_email, sender_password)
-            smtp.send_message(msg)
-            print(f"[EMAIL] Alert sent to {admin_email} | Subject: {email_subject}")
-    except Exception as e:
-        print(f"[EMAIL ERROR] Failed to send alert: {e}")
+    def _send_async():
+        try:
+            # Added a 5-second timeout to prevent Render from hanging
+            with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=5) as smtp:
+                smtp.login(sender_email, sender_password)
+                smtp.send_message(msg)
+                print(f"[EMAIL] Alert sent to {admin_email} | Subject: {email_subject}")
+        except Exception as e:
+            print(f"[EMAIL ERROR] Failed to send alert: {e}")
+
+    # Fire and forget email thread (non-daemon to ensure it completes on Render)
+    import threading
+    t = threading.Thread(target=_send_async)
+    t.start()
 
 
 
