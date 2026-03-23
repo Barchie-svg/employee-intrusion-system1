@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()  # loads .env file for local dev (ignored on Render where env vars are set directly)
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from flask_session import Session
 import bcrypt
@@ -613,6 +616,21 @@ def export_logs():
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment;filename=intrusion_logs.csv"}
     )
+
+@app.route("/admin/test-email")
+def test_email():
+    """Diagnostic route to test email connectivity."""
+    if not session.get("admin_logged_in"):
+        flash("Admin access required.", "warning")
+        return redirect("/")
+    
+    success = send_alert("This is a diagnostic test email to verify your Render/Gmail connection.", "Test Email")
+    if success:
+        flash("✅ Test email sent! Check your inbox (and spam).", "success")
+    else:
+        flash("❌ Email failed! Check the Render 'Logs' tab for more details.", "danger")
+    
+    return redirect(url_for('admin_dashboard'))
 
 if __name__ == "__main__":
     import os
