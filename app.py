@@ -34,7 +34,10 @@ from sql_queries import (
     log_intrusion, get_recent_intrusion_logs,
     log_audit_action, get_recent_audit_logs,
     # Settings
-    get_setting, update_setting, get_system_settings, update_system_settings
+    get_setting, update_setting, get_system_settings, update_system_settings,
+    # SaaS Companies
+    get_all_companies, create_company, get_company_by_id,
+    delete_company, regenerate_company_api_key
 )
 
 # ─────────────────────────────────────────────
@@ -147,7 +150,7 @@ def login():
 
         if user:
             # ── Branch A: Employee ──
-            if user.get("role", "Employee") != "Admin":
+            if user.get("role", "Employee") not in ("Admin", "SuperAdmin"):
                 if not user.get("password"):
                     flash("Password not set. Contact admin.", "danger")
                     return redirect("/")
@@ -160,7 +163,7 @@ def login():
                 try:
                     if bcrypt.checkpw(password, user["password"].encode()):
                         # ... (is_suspicious_time check remains)
-                        if is_suspicious_time():
+                        if not user.get("allow_after_hours") and is_suspicious_time():
                             reason = "Login attempt at suspicious hours (11 PM – 5 AM)"
                             log_intrusion(display_name, reason, ip_address, device_info)
                             lock_employee(user["id"])
@@ -423,6 +426,7 @@ def admin_dashboard():
     }
 
     settings = get_system_settings()
+    companies = get_all_companies()
 
     return render_template(
         "admin_dashboard.html",
@@ -430,7 +434,8 @@ def admin_dashboard():
         logs=logs,
         audit_logs=audit_logs,
         stats=stats,
-        settings=settings
+        settings=settings,
+        companies=companies
     )
 
 
@@ -453,6 +458,39 @@ def admin_settings_update():
     
     return redirect(url_for('admin_dashboard'))
 
+@app.route("/admin/companies/add", methods=["POST"])
+def admin_add_company():
+    """Admin-only: register a new company/tenant."""
+    if not session.get("admin_logged_in"):
+        flash("Admin access required.", "warning")
+        return redirect("/")
+
+    name = request.form.get("name", "").strip()
+    contact_email = request.form.get("contact_email", "").strip() or None
+    password = request.form.get("password", "")
+
+    if not name:
+        flash("Company name is required.", "danger")
+        return redirect(url_for('admin_dashboard'))
+    if not password:
+        flash("Tenant password is required.", "danger")
+        return redirect(url_for('admin_dashboard'))
+    
+    if len(password) < 6:
+        flash("Tenant password must be at least 6 characters.", "danger")
+        return redirect(url_for('admin_dashboard'))
+
+    try:
+        import bcrypt
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        company = create_company(name, contact_email=contact_email, password_hash=hashed)
+        flash(f"✅ Company '{name}' registered! API Key: {company['api_key'][:20]}...", "success")
+        log_audit_action(session.get("admin_username"), "Add Company", name, request.remote_addr)
+    except Exception as e:
+        flash(f"Error registering company: {e}", "danger")
+        
+    return redirect(url_for('admin_dashboard'))
+
 
 @app.route("/admin/register", methods=["POST"])
 def admin_register():
@@ -473,8 +511,8 @@ def admin_register():
         return redirect(url_for('admin_dashboard'))
 
     # Password Complexity Check
-    if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$', password):
-        flash("Password must be at least 8 characters long, contain a number, and a special character.", "danger")
+    if len(password) < 6:
+        flash("Password must be at least 6 characters long.", "danger")
         return redirect(url_for('admin_dashboard'))
 
     if employee_username_exists(username):
@@ -517,8 +555,8 @@ def admin_reset_password(user_id):
         return redirect(url_for('admin_dashboard'))
 
     # Password Complexity Check
-    if not re.match(r'^(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$', new_password):
-        flash("Password must be at least 8 characters long, contain a number, and a special character.", "danger")
+    if len(new_password) < 6:
+        flash("Password must be at least 6 characters long.", "danger")
         return redirect(url_for('admin_dashboard'))
 
     try:
@@ -573,6 +611,152 @@ def delete_user(user_id):
     else:
         flash(f"Employee with ID {user_id} not found.", "danger")
     return redirect(url_for('admin_dashboard'))
+
+
+@app.route("/admin/employee/<user_id>/toggle-after-hours", methods=["POST"])
+def toggle_after_hours(user_id):
+    if not session.get("admin_logged_in"):
+        return redirect("/")
+    allow = request.form.get("allow") == "true"
+    from sql_queries import update_employee_after_hours, get_employee_username_by_id
+    update_employee_after_hours(user_id, allow)
+    username = get_employee_username_by_id(user_id)
+    state = "allowed" if allow else "restricted"
+    flash(f"After-hours access {state} for {username}.", "info")
+    log_audit_action(session.get("admin_username"), f"Toggle After-Hours ({state})", username, request.remote_addr)
+    return redirect(url_for('admin_dashboard'))
+
+@app.route("/admin/companies/<company_id>/hours", methods=["POST"])
+def update_company_hours_route(company_id):
+    if not session.get("admin_logged_in"):
+        return redirect("/")
+    start = request.form.get("start")
+    end = request.form.get("end")
+    if start and end:
+        from sql_queries import update_company_hours
+        update_company_hours(company_id, start, end)
+        flash("Company working hours updated successfully.", "success")
+        log_audit_action(session.get("admin_username"), "Update Company Hours", company_id, request.remote_addr)
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route("/admin/companies/<company_id>/delete", methods=["POST"])
+def admin_delete_company(company_id):
+    """Admin-only: permanently delete a company tenant and its settings."""
+    if not session.get("admin_logged_in"):
+        flash("Admin access required.", "warning")
+        return redirect("/")
+    try:
+        company = get_company_by_id(company_id)
+        name = company["name"] if company else company_id
+        delete_company(company_id)
+        flash(f"🗑️ Company '{name}' and its settings have been deleted.", "info")
+        log_audit_action(session.get("admin_username"), "Delete Company", name, request.remote_addr)
+    except Exception as e:
+        flash(f"Error deleting company: {e}", "danger")
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route("/admin/companies/<company_id>/regenerate-key", methods=["POST"])
+def admin_regenerate_company_key(company_id):
+    """Admin-only: generate a fresh API key for a company (invalidates the old one)."""
+    if not session.get("admin_logged_in"):
+        flash("Admin access required.", "warning")
+        return redirect("/")
+    try:
+        company = get_company_by_id(company_id)
+        name = company["name"] if company else company_id
+        new_key = regenerate_company_api_key(company_id)
+        flash(f"🔑 New API key for '{name}': {new_key[:20]}... — update your integration snippet!", "success")
+        log_audit_action(session.get("admin_username"), "Regenerate API Key", name, request.remote_addr)
+    except Exception as e:
+        flash(f"Error regenerating key: {e}", "danger")
+    return redirect(url_for('admin_dashboard'))
+
+
+@app.route("/api/v1/health", methods=["GET"])
+def api_health():
+    """Public health check endpoint — used by integration guide's 'Test Connection' button."""
+    return jsonify({"status": "ok", "service": "SecureIDS", "version": "2.0"}), 200
+
+
+@app.route("/register-company", methods=["POST"])
+def public_register_company():
+    """Public self-service registration: creates a company & emails the API key."""
+    company_name  = request.form.get("company_name", "").strip()
+    contact_email = request.form.get("contact_email", "").strip()
+    password      = request.form.get("password", "")
+
+    if not company_name or not contact_email or not password:
+        flash("Company name, contact email, and password are required.", "danger")
+        return redirect("/integration#register")
+
+    if len(password) < 6:
+        flash("Password must be at least 6 characters.", "danger")
+        return redirect("/integration#register")
+
+    # Basic email validation
+    import re as _re
+    if not _re.match(r'^[^@]+@[^@]+\.[^@]+$', contact_email):
+        flash("Please enter a valid email address.", "danger")
+        return redirect("/integration#register")
+
+    try:
+        import bcrypt
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+        company = create_company(company_name, contact_email=contact_email, password_hash=hashed)
+        api_key = company["api_key"]
+        host = request.host_url.rstrip("/")
+        snippet = f'<script src="{host}/static/ids-shield.js" data-api-key="{api_key}"></script>'
+
+        # Send API key via email
+        try:
+            send_alert(
+                message=(
+                    f"Hello,\n\n"
+                    f"Welcome to SecureIDS! Your company '{company_name}' has been registered.\n\n"
+                    f"Your API Key is:\n\n    {api_key}\n\n"
+                    f"Integration snippet (paste before </body> on your login page):\n\n    {snippet}\n\n"
+                    f"Visit {host}/integration/login to log in to your Tenant Portal.\n\n"
+                    f"— SecureIDS Team"
+                ),
+                subject=f"Your SecureIDS API Key — {company_name}",
+                to_email=contact_email
+            )
+            email_sent = True
+        except Exception as mail_err:
+            print(f"[WARN] Registration email not sent: {mail_err}")
+            email_sent = False
+
+        session["new_company_key"] = api_key
+        session["new_company_name"] = company_name
+        session["new_company_snippet"] = snippet
+        session["new_company_email_sent"] = email_sent
+        log_audit_action("public", "Self-Service Registration", company_name, request.remote_addr)
+        return redirect("/integration/success")
+    except Exception as e:
+        flash(f"Registration failed: {e}", "danger")
+        return redirect("/integration#register")
+
+
+@app.route("/integration/success")
+def integration_success():
+    """Show the success page after self-service company registration."""
+    api_key = session.pop("new_company_key", None)
+    company_name = session.pop("new_company_name", "Your Company")
+    snippet = session.pop("new_company_snippet", "")
+    email_sent = session.pop("new_company_email_sent", False)
+    if not api_key:
+        return redirect("/integration")
+    host = request.host_url.rstrip("/")
+    return render_template(
+        "integration_success.html",
+        api_key=api_key,
+        company_name=company_name,
+        snippet=snippet,
+        email_sent=email_sent,
+        ids_host=host
+    )
 
 
 @app.route("/admin/logout")
@@ -631,6 +815,406 @@ def test_email():
         flash("❌ Email failed! Check the Render 'Logs' tab for more details.", "danger")
     
     return redirect(url_for('admin_dashboard'))
+
+# ─────────────────────────────────────────────
+#  Widget & Integration Routes
+# ─────────────────────────────────────────────
+@app.after_request
+def add_security_headers(response):
+    # Allow widget to be embedded in iframes on any customer site
+    response.headers.pop('X-Frame-Options', None)
+    # Allow Cross-Origin AJAX requests from the invisible shield script
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    return response
+
+@app.route("/api/v1/auth/verify", methods=["POST", "OPTIONS"])
+@app.route("/api/evaluate_login", methods=["POST", "OPTIONS"]) # Legacy Support
+def evaluate_login():
+    """Pre-screen API: checks hours and account status WITHOUT verifying the password.
+    The widget uses this to intercept the form and block suspicious attempts before submission."""
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+
+    # 1. API Key Authentication
+    data = request.get_json(silent=True) or {}
+    api_key = data.get("api_key")
+    if not api_key:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            api_key = auth_header.split("Bearer ")[1]
+
+    if not api_key:
+        return jsonify({"status": "deny", "reason": "Missing API Key"}), 401
+
+    from sql_queries import get_company_by_api_key, get_company_settings
+    company = get_company_by_api_key(api_key)
+    if not company:
+        return jsonify({"status": "deny", "reason": "Invalid API Key"}), 401
+
+    company_id = company["id"]
+    identifier = data.get("identifier", "unknown")
+    url = data.get("url", "unknown_site")
+    ip_address = request.remote_addr
+    device_info = request.user_agent.string
+
+    # Rule 1: Get user
+    user = get_user_by_email_or_username(identifier)
+
+    # Rule 2: Suspicious Hours
+    settings = get_company_settings(company_id) or {}
+    start_time_str = settings.get("working_hours_start", "05:00:00")
+    end_time_str = settings.get("working_hours_end", "23:00:00")
+    
+    allow_after_hours = user.get("allow_after_hours", False) if user else False
+
+    if not allow_after_hours and is_suspicious_time(start_time_str, end_time_str):
+        reason = f"Login attempt outside of {company['name']} working hours ({start_time_str}–{end_time_str})"
+        log_intrusion(identifier, reason, ip_address, device_info, company_id)
+        return jsonify({
+            "status": "deny",
+            "reason": f"Access denied: Outside allowed working hours ({start_time_str}–{end_time_str})."
+        }), 403
+
+    # Rule 3: Account Status
+    if user and str(user.get("company_id")) == str(company_id):
+        if user.get("status") == "Locked":
+            log_intrusion(identifier, "Attempted login on locked account", ip_address, device_info, company_id)
+            return jsonify({
+                "status": "deny",
+                "reason": "Account is locked. Please contact your administrator."
+            }), 403
+
+    # All pre-checks passed — allow the form to proceed
+    return jsonify({"status": "allow", "company": company["name"]}), 200
+
+
+@app.route("/api/v1/auth/login", methods=["POST", "OPTIONS"])
+def api_full_login():
+    """Full-authentication API endpoint.
+    Companies call this instead of their own login system.
+    Returns: allow / deny / lock_account with a descriptive reason.
+    """
+    if request.method == "OPTIONS":
+        return jsonify({}), 200
+
+    # 1. API Key
+    data = request.get_json(silent=True) or {}
+    api_key = data.get("api_key")
+    if not api_key:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.startswith("Bearer "):
+            api_key = auth_header.split("Bearer ")[1]
+
+    if not api_key:
+        return jsonify({"status": "deny", "reason": "Missing API key. Include it in the Authorization header as 'Bearer <key>'."}), 401
+
+    from sql_queries import get_company_by_api_key, get_company_settings
+    company = get_company_by_api_key(api_key)
+    if not company:
+        return jsonify({"status": "deny", "reason": "Invalid API key."}), 401
+
+    company_id = company["id"]
+
+    # 2. Extract credentials
+    identifier = data.get("identifier", "").strip()
+    password_raw = data.get("password", "")
+    ip_address = request.remote_addr
+    device_info = request.user_agent.string
+
+    if not identifier or not password_raw:
+        return jsonify({"status": "deny", "reason": "Both 'identifier' and 'password' are required."}), 400
+
+    # 3. Look up user
+    user = get_user_by_email_or_username(identifier)
+    if not user:
+        log_intrusion(identifier, "Login attempt with unknown identifier (API)", ip_address, device_info, company_id)
+        return jsonify({"status": "deny", "reason": "Invalid credentials."}), 401
+
+    # 4. Suspicious hours check
+    settings = get_company_settings(company_id) or {}
+    start_time_str = settings.get("working_hours_start", "05:00:00")
+    end_time_str = settings.get("working_hours_end", "23:00:00")
+    max_attempts = int(settings.get("max_failed_attempts", 3))
+
+    if not user.get("allow_after_hours") and is_suspicious_time(start_time_str, end_time_str):
+        reason = f"Login attempt outside of {company['name']} working hours ({start_time_str}–{end_time_str})"
+        log_intrusion(identifier, reason, ip_address, device_info, company_id)
+        return jsonify({
+            "status": "deny",
+            "reason": f"Access denied: login is only allowed between {start_time_str} and {end_time_str}."
+        }), 403
+
+    # 5. Account locked?
+    if user.get("status") == "Locked":
+        log_intrusion(identifier, "Login attempted on locked account (API)", ip_address, device_info, company_id)
+        return jsonify({
+            "status": "deny",
+            "reason": "Account is locked due to multiple failed login attempts. Contact your administrator."
+        }), 403
+
+    # 6. Password check
+    try:
+        stored_hash = user.get("password", "")
+        password_ok = bcrypt.checkpw(password_raw.encode(), stored_hash.encode())
+    except Exception:
+        return jsonify({"status": "deny", "reason": "Authentication error. Please try again."}), 500
+
+    if not password_ok:
+        new_attempts = (user.get("failed_attempts") or 0) + 1
+        update_failed_attempts(user["id"], new_attempts)
+
+        if new_attempts >= max_attempts:
+            lock_employee(user["id"])
+            reason = f"Account locked after {new_attempts} failed login attempts (API)"
+            log_intrusion(identifier, reason, ip_address, device_info, company_id)
+            send_intrusion_alert(identifier, reason, ip_address)
+            return jsonify({
+                "status": "lock_account",
+                "reason": f"Account locked after {max_attempts} failed attempts. Administrator has been notified.",
+                "failed_attempts": new_attempts
+            }), 403
+
+        remaining = max_attempts - new_attempts
+        log_intrusion(identifier, f"Failed password (via API, attempt {new_attempts})", ip_address, device_info, company_id)
+        return jsonify({
+            "status": "deny",
+            "reason": f"Incorrect credentials. {remaining} attempt(s) remaining before lockout.",
+            "failed_attempts": new_attempts
+        }), 401
+
+    # 7. Success
+    display_name = user.get("name") or user.get("username") or identifier
+    reset_failed_attempts(user["id"], ip_address)
+    return jsonify({
+        "status": "allow",
+        "reason": "Login successful.",
+        "user": {
+            "id": user["id"],
+            "name": display_name,
+            "username": user.get("username"),
+            "email": user.get("email"),
+            "role": user.get("role", "Employee")
+        }
+    }), 200
+
+
+# ─────────────────────────────────────────────
+#  Integration Developer Portal
+# ─────────────────────────────────────────────
+@app.route("/integration", methods=["GET", "POST"])
+def integration_portal():
+    """SaaS Tenant Login Portal."""
+    if session.get("company_logged_in"):
+        return redirect("/integration/dashboard")
+
+    if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
+        ip_address = request.remote_addr
+
+        if not email or not password:
+            flash("Email and password are required.", "danger")
+            return redirect("/integration")
+
+        from sql_queries import get_company_by_email, update_company_failed_attempts, lock_company, reset_company_failed_attempts, get_company_settings
+        company = get_company_by_email(email)
+
+        if not company:
+            flash("Invalid email or password.", "danger")
+            return redirect("/integration")
+
+        if company.get("status") == "Locked":
+            flash("Your company account is locked due to too many failed attempts. Please contact support.", "danger")
+            return redirect("/integration")
+            
+        # Check if outside working hours for login portal access
+        settings = get_company_settings(company["id"]) or {}
+        start_time_str = settings.get("working_hours_start", "05:00:00")
+        end_time_str = settings.get("working_hours_end", "23:00:00")
+        
+        if is_suspicious_time(start_time_str, end_time_str):
+            flash(f"Access Denied: You can only access the portal during your configured working hours ({start_time_str} - {end_time_str}).", "warning")
+            return redirect("/integration")
+
+        import bcrypt
+        try:
+            stored_hash = company.get("password_hash")
+            if not stored_hash:
+                flash("Your account does not have a password set. Please contact support.", "danger")
+                return redirect("/integration")
+
+            if bcrypt.checkpw(password.encode(), stored_hash.encode()):
+                reset_company_failed_attempts(company["id"], ip_address)
+                session["company_logged_in"] = True
+                session["company_id"] = company["id"]
+                session.permanent = True
+                flash(f"Welcome to the Tenant Portal, {company['name']}!", "success")
+                return redirect("/integration/dashboard")
+            else:
+                attempts = company.get("failed_attempts", 0) + 1
+                update_company_failed_attempts(company["id"], attempts)
+                if attempts >= 3:
+                    lock_company(company["id"])
+                    flash("Account locked due to too many failed attempts.", "danger")
+                else:
+                    flash(f"Invalid password. {3 - attempts} attempt(s) remaining.", "danger")
+                return redirect("/integration")
+        except Exception as e:
+            flash(f"Authentication error: {e}", "danger")
+            return redirect("/integration")
+
+    return render_template("tenant_login.html")
+
+@app.route("/integration/dashboard")
+def integration_dashboard():
+    """SaaS Tenant Dashboard showing API Key and configuration."""
+    if not session.get("company_logged_in"):
+        flash("Please log in to access the Tenant Portal.", "warning")
+        return redirect("/integration")
+        
+    company_id = session.get("company_id")
+    from sql_queries import get_company_by_id, get_company_settings
+    company = get_company_by_id(company_id)
+    if not company:
+        session.pop("company_logged_in", None)
+        return redirect("/integration")
+        
+    settings = get_company_settings(company_id) or {}
+    host = request.host_url.rstrip("/")
+    return render_template("integration.html", company=company, settings=settings, ids_host=host)
+
+@app.route("/integration/settings", methods=["POST"])
+def integration_settings():
+    if not session.get("company_logged_in"):
+        return redirect("/integration")
+        
+    company_id = session.get("company_id")
+    start = request.form.get("start")
+    end = request.form.get("end")
+    if start and end:
+        from sql_queries import update_company_hours
+        update_company_hours(company_id, start, end)
+        flash("Your working hours have been updated successfully.", "success")
+    return redirect("/integration/dashboard")
+
+@app.route("/integration/logout")
+def integration_logout():
+    session.pop("company_logged_in", None)
+    session.pop("company_id", None)
+    flash("You have securely logged out.", "success")
+    return redirect("/integration")
+
+@app.route("/embed/login", methods=["GET", "POST"])
+def embed_login():
+    if session.get("admin_logged_in"):
+        return "<script>window.top.location.href = '/admin/dashboard';</script>"
+    if session.get("employee_logged_in"):
+        return "<script>window.top.location.href = '/employee/dashboard';</script>"
+
+    if request.method == "POST":
+        identifier = request.form.get("identifier", "").strip()
+        password = request.form.get("password", "").encode()
+        
+        ip_address = request.remote_addr
+        device_info = request.user_agent.string
+
+        user = get_user_by_email_or_username(identifier)
+
+        if user:
+            if user.get("role", "Employee") not in ("Admin", "SuperAdmin"):
+                if not user.get("password"):
+                    flash("Password not set. Contact admin.", "danger")
+                    return redirect("/embed/login")
+
+                if user["status"] == "Locked":
+                    flash("Your account is locked. Please contact the administrator.", "danger")
+                    return redirect("/embed/login")
+
+                display_name = user.get("username") or user.get("email", identifier)
+                try:
+                    if bcrypt.checkpw(password, user["password"].encode()):
+                        if not user.get("allow_after_hours") and is_suspicious_time():
+                            reason = "Login attempt at suspicious hours (11 PM \u2013 5 AM)"
+                            log_intrusion(display_name, reason, ip_address, device_info)
+                            lock_employee(user["id"])
+                            send_intrusion_alert(display_name, reason, ip_address)
+                            flash("Account locked: login attempted at suspicious hours. Admin has been notified by email.", "danger")
+                            return redirect("/embed/login")
+
+                        reset_failed_attempts(user["id"], ip_address)
+                        session["employee_logged_in"] = True
+                        session["employee_id"] = user["id"]
+                        session.permanent = True
+                        flash(f"Welcome back, {user.get('name', display_name)}!", "success")
+                        return "<script>window.top.location.href = '/employee/dashboard';</script>"
+
+                    else:
+                        new_attempts = (user.get("failed_attempts") or 0) + 1
+                        update_failed_attempts(user["id"], new_attempts)
+
+                        if new_attempts >= 3:
+                            reason = "Multiple failed login attempts (>=3 attempts)"
+                            log_intrusion(display_name, reason, ip_address, device_info)
+                            lock_employee(user["id"])
+                            send_intrusion_alert(display_name, reason, ip_address)
+                            flash("Account locked due to too many failed attempts. Admin has been notified by email.", "danger")
+                            return redirect("/embed/login")
+
+                        remaining = 3 - new_attempts
+                        log_intrusion(display_name, f"Failed password attempt (count: {new_attempts})", ip_address, device_info)
+                        flash(f"Incorrect password. {remaining} attempt(s) remaining before lockout.", "danger")
+                        return redirect("/embed/login")
+
+                except Exception as e:
+                    flash(f"Login failed due to a system error. {e}", "danger")
+                    return redirect("/embed/login")
+
+            else:
+                if not user.get("password"):
+                    flash("Admin password not set. Contact system administrator.", "danger")
+                    return redirect("/embed/login")
+                try:
+                    if bcrypt.checkpw(password, user["password"].encode()):
+                        session["admin_logged_in"] = True
+                        session["admin_username"] = user.get("username", identifier)
+                        session.permanent = True
+                        reset_failed_attempts(user["id"], ip_address)
+                        flash(f"Welcome, {user.get('username', identifier)}!", "success")
+                        return "<script>window.top.location.href = '/admin/dashboard';</script>"
+                    else:
+                        log_intrusion(user.get("username", identifier), "Failed admin login attempt", ip_address, device_info)
+                        flash("Invalid credentials.", "danger")
+                        return redirect("/embed/login")
+                except ValueError:
+                    flash("Authentication error. Please contact admin.", "danger")
+                    return redirect("/embed/login")
+
+        log_intrusion(identifier, "Login attempt with non-existent username/email", ip_address, device_info)
+        flash("Invalid credentials.", "danger")
+        return redirect("/embed/login")
+
+    return render_template("embed_login.html")
+
+@app.route("/test-customer")
+def test_customer():
+    from sql_queries import get_all_companies
+    companies = get_all_companies()
+    
+    # Use the most recent company's API key, or a fallback if none exist
+    if companies:
+        api_key = companies[0].get("api_key", "sk_test_12345abcde")
+        company_name = companies[0].get("name", "Demo Company")
+    else:
+        api_key = "sk_test_12345abcde"
+        company_name = "Demo Company"
+        
+    return render_template("test_customer.html", api_key=api_key, company_name=company_name)
+
+@app.route("/test-customer-dashboard")
+def test_customer_dashboard():
+    return render_template("test_customer_dashboard.html")
 
 if __name__ == "__main__":
     import os

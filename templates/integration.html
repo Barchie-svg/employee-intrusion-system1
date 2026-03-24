@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureIDS — Integration Developer Portal</title>
+    <meta name="description" content="Protect any company login page in under 5 minutes with the SecureIDS plug-and-play security widget.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #080b14;
+            --bg-card: #0f1320;
+            --bg-card2: #161b2e;
+            --border: rgba(255,255,255,0.07);
+            --accent: #6c5ce7;
+            --accent2: #00d2ff;
+            --success: #2dda9b;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --text: #f1f5f9;
+            --text-muted: #64748b;
+            --text-dim: #94a3b8;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        /* ─── TOPBAR ─── */
+        .topbar {
+            position: sticky; top: 0; z-index: 100;
+            padding: 16px 40px;
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(8, 11, 20, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+        }
+        .topbar-brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 1.1rem; font-weight: 700; color: white;
+            text-decoration: none;
+        }
+        .brand-shield {
+            width: 34px; height: 34px;
+            background: linear-gradient(135deg, var(--accent), #7c3aed);
+            border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            box-shadow: 0 4px 15px rgba(108,92,231,0.4);
+        }
+        .topbar-links { display: flex; gap: 8px; align-items: center; }
+        .topbar-links a {
+            text-decoration: none; color: var(--text-dim);
+            padding: 8px 16px; border-radius: 8px;
+            font-size: 0.88rem; font-weight: 500;
+            transition: all 0.2s;
+        }
+        .topbar-links a:hover { background: rgba(255,255,255,0.06); color: white; }
+        .topbar-links .cta {
+            background: var(--accent); color: white;
+            border-radius: 8px; font-weight: 600;
+        }
+        .topbar-links .cta:hover { background: #5b4bc4; color: white; }
+
+        /* ─── HERO ─── */
+        .hero {
+            padding: 100px 40px 80px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -100px; left: 50%; transform: translateX(-50%);
+            width: 800px; height: 500px;
+            background: radial-gradient(ellipse, rgba(108,92,231,0.18) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(108,92,231,0.12); border: 1px solid rgba(108,92,231,0.3);
+            color: #a78bfa; padding: 6px 16px; border-radius: 100px;
+            font-size: 0.82rem; font-weight: 600; margin-bottom: 28px;
+            letter-spacing: 0.5px;
+        }
+        .hero h1 {
+            font-size: clamp(2.2rem, 5vw, 3.8rem);
+            font-weight: 800; line-height: 1.15;
+            background: linear-gradient(135deg, #fff 40%, #a78bfa 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 20px;
+        }
+        .hero p {
+            font-size: 1.15rem; color: var(--text-dim);
+            max-width: 580px; margin: 0 auto 40px;
+        }
+        .hero-ctas {
+            display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+        }
+        .btn-primary {
+            background: var(--accent); color: white;
+            padding: 13px 28px; border-radius: 10px;
+            font-weight: 600; font-size: 0.95rem;
+            text-decoration: none; border: none; cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 20px rgba(108,92,231,0.4);
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary:hover { background: #5b4bc4; transform: translateY(-2px); box-shadow: 0 8px 25px rgba(108,92,231,0.5); }
+        .btn-outline {
+            background: transparent; color: var(--text-dim);
+            padding: 13px 28px; border-radius: 10px;
+            font-weight: 600; font-size: 0.95rem;
+            text-decoration: none; border: 1px solid var(--border);
+            cursor: pointer; transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-outline:hover { background: rgba(255,255,255,0.05); color: white; }
+
+        /* ─── SECTION ─── */
+        .section { padding: 80px 40px; max-width: 1100px; margin: 0 auto; }
+        .section-label {
+            font-size: 0.8rem; font-weight: 700; letter-spacing: 1.5px;
+            text-transform: uppercase; color: var(--accent); margin-bottom: 12px;
+        }
+        .section-title { font-size: 2rem; font-weight: 700; margin-bottom: 14px; }
+        .section-sub { color: var(--text-muted); font-size: 1rem; max-width: 560px; margin-bottom: 50px; }
+
+        /* ─── 3-STEP GUIDE ─── */
+        .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; }
+        .step-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px; padding: 32px;
+            position: relative; overflow: hidden;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+        .step-card:hover { border-color: rgba(108,92,231,0.4); transform: translateY(-4px); }
+        .step-card::before {
+            content: ''; position: absolute;
+            top: 0; left: 0; right: 0; height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .step-card:hover::before { opacity: 1; }
+        .step-num {
+            font-size: 3rem; font-weight: 800;
+            color: rgba(108,92,231,0.15); line-height: 1;
+            margin-bottom: 16px; font-family: 'JetBrains Mono', monospace;
+        }
+        .step-icon {
+            width: 48px; height: 48px;
+            background: rgba(108,92,231,0.12);
+            border: 1px solid rgba(108,92,231,0.2);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; color: var(--accent);
+            margin-bottom: 20px;
+        }
+        .step-card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 10px; }
+        .step-card p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; }
+
+        /* ─── CODE SNIPPET ─── */
+        .snippet-wrapper {
+            background: #0a0d18;
+            border: 1px solid var(--border);
+            border-radius: 16px; overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+        .snippet-toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 20px;
+            background: #0f1320;
+            border-bottom: 1px solid var(--border);
+        }
+        .snippet-dots { display: flex; gap: 7px; }
+        .snippet-dots span {
+            width: 12px; height: 12px; border-radius: 50%;
+        }
+        .snippet-dots span:nth-child(1) { background: #ef4444; }
+        .snippet-dots span:nth-child(2) { background: #f59e0b; }
+        .snippet-dots span:nth-child(3) { background: #22c55e; }
+        .snippet-label { font-size: 0.78rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+        .copy-btn {
+            background: rgba(108,92,231,0.15); color: #a78bfa;
+            border: 1px solid rgba(108,92,231,0.25);
+            padding: 6px 14px; border-radius: 6px;
+            font-size: 0.78rem; font-weight: 600; cursor: pointer;
+            transition: all 0.2s;
+            display: flex; align-items: center; gap: 6px;
+            font-family: 'Inter', sans-serif;
+        }
+        .copy-btn:hover { background: rgba(108,92,231,0.3); }
+        .copy-btn.copied { background: rgba(45,218,155,0.15); color: var(--success); border-color: rgba(45,218,155,0.3); }
+        pre {
+            padding: 28px 28px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem; line-height: 1.8;
+            overflow-x: auto; white-space: pre;
+            color: #cdd6f4;
+        }
+        .c-tag { color: #89b4fa; }
+        .c-attr { color: #cba6f7; }
+        .c-str { color: #a6e3a1; }
+        .c-cmt { color: #585b70; font-style: italic; }
+        .c-kw { color: #89dceb; }
+        .c-fn { color: #f38ba8; }
+        .c-num { color: #fab387; }
+
+        /* ─── API REFERENCE ─── */
+        .api-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px; overflow: hidden; margin-top: 24px;
+        }
+        .api-endpoint-bar {
+            display: flex; align-items: center; gap: 14px;
+            padding: 18px 24px;
+            background: var(--bg-card2);
+            border-bottom: 1px solid var(--border);
+        }
+        .method-badge {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem; font-weight: 700;
+            padding: 5px 12px; border-radius: 6px;
+        }
+        .method-post { background: rgba(108,92,231,0.2); color: #a78bfa; border: 1px solid rgba(108,92,231,0.3); }
+        .method-get { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+        .endpoint-url {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem; color: var(--text);
+        }
+        .api-body { padding: 24px; }
+        .api-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        @media (max-width: 700px) { .api-grid { grid-template-columns: 1fr; } }
+        .api-section-title {
+            font-size: 0.75rem; font-weight: 700; letter-spacing: 1px;
+            text-transform: uppercase; color: var(--text-muted);
+            margin-bottom: 14px;
+        }
+        table.param-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        table.param-table th { text-align: left; color: var(--text-muted); font-weight: 600; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 0.78rem; }
+        table.param-table td { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.03); vertical-align: top; }
+        table.param-table td:first-child { font-family: 'JetBrains Mono', monospace; color: #cba6f7; padding-right: 16px; font-size: 0.82rem; }
+        table.param-table td:nth-child(2) { color: #89b4fa; padding-right: 16px; font-size: 0.78rem; }
+        table.param-table td:nth-child(3) { color: var(--text-muted); }
+
+        /* ─── RESPONSE CARDS ─── */
+        .response-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 24px; }
+        .response-card {
+            background: var(--bg-card); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px; position: relative;
+            overflow: hidden;
+        }
+        .response-card.allow { border-left: 3px solid var(--success); }
+        .response-card.deny { border-left: 3px solid var(--danger); }
+        .response-card.lock { border-left: 3px solid var(--warning); }
+        .response-status {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem; font-weight: 700;
+            padding: 4px 12px; border-radius: 100px;
+            display: inline-block; margin-bottom: 10px;
+        }
+        .status-allow { background: rgba(45,218,155,0.15); color: var(--success); }
+        .status-deny { background: rgba(239,68,68,0.15); color: var(--danger); }
+        .status-lock { background: rgba(245,158,11,0.15); color: var(--warning); }
+        .response-card h4 { font-size: 0.95rem; margin-bottom: 6px; }
+        .response-card p { font-size: 0.83rem; color: var(--text-muted); margin-bottom: 12px; }
+        .response-card pre.mini { padding: 12px; border-radius: 8px; background: rgba(0,0,0,0.35); font-size: 0.75rem; line-height: 1.7; color: #cdd6f4; border: 1px solid var(--border); }
+
+        /* ─── ARCHITECTURE DIAGRAM ─── */
+        .arch-diagram {
+            display: flex; align-items: center; justify-content: center;
+            gap: 0; flex-wrap: wrap;
+            padding: 40px; margin-top: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+        }
+        .arch-node {
+            background: var(--bg-card2);
+            border: 1px solid var(--border);
+            border-radius: 12px; padding: 18px 22px;
+            text-align: center; min-width: 130px;
+            position: relative;
+        }
+        .arch-node .node-icon { font-size: 1.5rem; margin-bottom: 8px; }
+        .arch-node .node-label { font-size: 0.82rem; font-weight: 600; color: var(--text); }
+        .arch-node .node-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; }
+        .arch-node.ids-node {
+            background: linear-gradient(135deg, rgba(108,92,231,0.2), rgba(124,58,237,0.15));
+            border-color: rgba(108,92,231,0.4);
+        }
+        .arch-arrow {
+            display: flex; flex-direction: column; align-items: center;
+            padding: 0 12px; color: var(--text-muted);
+            min-width: 80px;
+        }
+        .arch-arrow .arrow-label { font-size: 0.7rem; font-weight: 600; color: var(--accent); margin-bottom: 4px; white-space: nowrap; }
+        .arch-arrow .line {
+            width: 60px; height: 2px;
+            background: linear-gradient(90deg, var(--accent), var(--accent2));
+            position: relative;
+        }
+        .arch-arrow .line::after {
+            content: '▶'; position: absolute; right: -8px; top: -7px;
+            font-size: 10px; color: var(--accent2);
+        }
+
+        /* ─── CTA BANNER ─── */
+        .cta-banner {
+            margin: 0 40px 80px;
+            background: linear-gradient(135deg, rgba(108,92,231,0.15) 0%, rgba(0,210,255,0.08) 100%);
+            border: 1px solid rgba(108,92,231,0.25);
+            border-radius: 20px; padding: 60px 40px;
+            text-align: center; position: relative; overflow: hidden;
+        }
+        .cta-banner::before {
+            content: ''; position: absolute;
+            top: -80px; right: -80px;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, rgba(108,92,231,0.15) 0%, transparent 70%);
+        }
+        .cta-banner h2 { font-size: 1.8rem; font-weight: 700; margin-bottom: 14px; }
+        .cta-banner p { color: var(--text-dim); margin-bottom: 28px; font-size: 1rem; }
+
+        /* ─── FOOTER ─── */
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 30px 40px;
+            display: flex; justify-content: space-between; align-items: center;
+            color: var(--text-muted); font-size: 0.82rem;
+        }
+        .footer a { color: var(--text-muted); text-decoration: none; }
+        .footer a:hover { color: white; }
+
+        /* ─── SCROLL ANIMATIONS ─── */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up { animation: fadeUp 0.5s ease forwards; }
+
+        @media (max-width: 768px) {
+            .topbar { padding: 14px 20px; }
+            .hero { padding: 70px 20px 50px; }
+            .section { padding: 50px 20px; }
+            .arch-diagram { flex-direction: column; }
+            .arch-arrow { transform: rotate(90deg); margin: 4px 0; }
+            .footer { flex-direction: column; gap: 8px; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ===== TOPBAR ===== -->
+<nav class="topbar">
+    <a href="/" class="topbar-brand">
+        <div class="brand-shield"><i class="fa-solid fa-shield-halved"></i></div>
+        SecureIDS
+    </a>
+    <div class="topbar-links">
+        <a href="#quickstart">Quickstart</a>
+        <a href="#api-reference">API Docs</a>
+        <a href="/test-customer">Demo</a>
+        <a href="/admin/dashboard" class="cta" style="background: transparent; border: 1px solid var(--border); color: var(--text-dim); margin-right: 10px;"><i class="fa-solid fa-lock"></i> Admin</a>
+        <a href="/integration/logout" class="cta"><i class="fa-solid fa-right-from-bracket"></i> Logout Tenant</a>
+    </div>
+</nav>
+
+<!-- ===== HERO ===== -->
+<section class="hero">
+    <div class="hero-badge"><i class="fa-solid fa-building"></i> Tenant Dashboard</div>
+    <h1>Welcome,<br>{{ company.name }}</h1>
+    <p>Manage your working hours, copy your integration snippet, and view the API documentation.</p>
+    <div class="hero-ctas">
+        <a href="#widget-code" class="btn-primary"><i class="fa-solid fa-code"></i> View Snippet</a>
+        <a href="/test-customer" class="btn-outline"><i class="fa-solid fa-play"></i> See Live Demo</a>
+    </div>
+</section>
+
+<!-- ===== HOW IT WORKS ===== -->
+<div class="section" id="quickstart">
+    <div class="section-label">How It Works</div>
+    <h2 class="section-title">Integrate in 3 simple steps</h2>
+    <p class="section-sub">No SDK, no backend changes, no new database. SecureIDS sits invisibly in front of your existing login.</p>
+
+    <div class="steps">
+        <div class="step-card fade-up" style="animation-delay:0s">
+            <div class="step-num">01</div>
+            <div class="step-icon"><i class="fa-solid fa-clock"></i></div>
+            <h3>Configure Working Hours</h3>
+            <p>Set your allowed business hours below. Any login attempt outside of your specified start and end time will be flagged.</p>
+        </div>
+        <div class="step-card fade-up" style="animation-delay:0.1s">
+            <div class="step-num">02</div>
+            <div class="step-icon"><i class="fa-solid fa-code"></i></div>
+            <h3>Paste One Line of HTML</h3>
+            <p>Copy the <code>&lt;script&gt;</code> tag with your API key and paste it anywhere on your login page. The widget auto-detects your login form.</p>
+        </div>
+        <div class="step-card fade-up" style="animation-delay:0.2s">
+            <div class="step-num">03</div>
+            <div class="step-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <h3>You're Protected</h3>
+            <p>Every login attempt is now silently screened for suspicious hours, failed attempts, and account status before your server even sees it.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ===== WIDGET CODE SNIPPET ===== -->
+<div class="section">
+    <div class="section-label">Integration Code</div>
+    <h2 class="section-title">Your integration snippet</h2>
+    <p class="section-sub">Copy and paste this into the <code>&lt;body&gt;</code> of your login page. Replace <code>YOUR_API_KEY</code> with the key from the Admin Panel.</p>
+
+    <div class="snippet-wrapper">
+        <div class="snippet-toolbar">
+            <div style="display:flex; align-items:center; gap:12px;">
+                <div class="snippet-dots">
+                    <span></span><span></span><span></span>
+                </div>
+                <span class="snippet-label">login.html</span>
+            </div>
+            <button class="copy-btn" id="copyWidgetBtn" onclick="copySnippet('widget-code', 'copyWidgetBtn')">
+                <i class="fa-solid fa-copy"></i> Copy
+            </button>
+        </div>
+        <pre id="widget-code"><span class="c-cmt">&lt;!-- ===== SecureIDS Invisible Shield ===== --&gt;</span>
+<span class="c-tag">&lt;script</span> <span class="c-attr">src</span>=<span class="c-str">"{{ ids_host }}/static/ids-shield.js"</span>
+        <span class="c-attr">data-api-key</span>=<span class="c-str">"{{ company.api_key }}"</span><span class="c-tag">&gt;&lt;/script&gt;</span>
+<span class="c-cmt">&lt;!-- ======================================= --&gt;</span></pre>
+    </div>
+
+    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 14px;">
+        <i class="fa-solid fa-circle-info" style="color: var(--accent)"></i>
+        That's it. The widget automatically finds any <code>&lt;form&gt;</code> with a password field and intercepts it before submission.
+    </p>
+</div>
+
+<!-- ===== HOW THE WIDGET WORKS ===== -->
+<div class="section">
+    <div class="section-label">Architecture</div>
+    <h2 class="section-title">What happens on each login</h2>
+    <p class="section-sub">The widget silently contacts SecureIDS before allowing the form to submit. It's invisible to genuine users.</p>
+
+    <div class="arch-diagram">
+        <div class="arch-node">
+            <div class="node-icon">👤</div>
+            <div class="node-label">Employee</div>
+            <div class="node-sub">Enters credentials</div>
+        </div>
+        <div class="arch-arrow">
+            <div class="arrow-label">clicks Submit</div>
+            <div class="line"></div>
+        </div>
+        <div class="arch-node">
+            <div class="node-icon"><i class="fa-brands fa-js" style="color:#f7df1e"></i></div>
+            <div class="node-label">IDS Widget</div>
+            <div class="node-sub">Intercepts form</div>
+        </div>
+        <div class="arch-arrow">
+            <div class="arrow-label">POST verify</div>
+            <div class="line"></div>
+        </div>
+        <div class="arch-node ids-node">
+            <div class="node-icon"><i class="fa-solid fa-shield-halved" style="color:#a78bfa"></i></div>
+            <div class="node-label">SecureIDS</div>
+            <div class="node-sub">Checks rules</div>
+        </div>
+        <div class="arch-arrow">
+            <div class="arrow-label">allow / deny</div>
+            <div class="line"></div>
+        </div>
+        <div class="arch-node">
+            <div class="node-icon">🏢</div>
+            <div class="node-label">Your Server</div>
+            <div class="node-sub">Receives safe login</div>
+        </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-top: 32px;">
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+            <div style="font-size: 1.3rem; margin-bottom: 8px;">🕐</div>
+            <strong style="font-size: 0.9rem;">Suspicious Hours</strong>
+            <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 6px;">Block logins outside your company's configured working hours (fully configurable per tenant).</p>
+        </div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+            <div style="font-size: 1.3rem; margin-bottom: 8px;">🔐</div>
+            <strong style="font-size: 0.9rem;">Failed Attempt Tracking</strong>
+            <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 6px;">Count failed attempts per user and automatically enforce account lockout after the configured threshold.</p>
+        </div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+            <div style="font-size: 1.3rem; margin-bottom: 8px;">🔒</div>
+            <strong style="font-size: 0.9rem;">Account Status Check</strong>
+            <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 6px;">Prevent any login attempt on a locked account, immediately notifying the admin by email.</p>
+        </div>
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px;">
+            <div style="font-size: 1.3rem; margin-bottom: 8px;">📧</div>
+            <strong style="font-size: 0.9rem;">Real-time Alerts</strong>
+            <p style="color: var(--text-muted); font-size: 0.82rem; margin-top: 6px;">Administrators receive instant email alerts whenever an intrusion event is detected.</p>
+        </div>
+    </div>
+</div>
+
+<!-- ===== API REFERENCE ===== -->
+<div class="section" id="api-reference">
+    <div class="section-label">API Reference</div>
+    <h2 class="section-title">REST API Endpoints</h2>
+    <p class="section-sub">For developers who want full control — call the API directly from your backend.</p>
+
+    <!-- Endpoint 1: Verify (Widget) -->
+    <div style="margin-bottom: 12px; color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">ENDPOINT 1 — Pre-screen (used by widget)</div>
+    <div class="api-box" style="margin-bottom: 32px;">
+        <div class="api-endpoint-bar">
+            <span class="method-badge method-post">POST</span>
+            <span class="endpoint-url">{{ ids_host }}/api/v1/auth/verify</span>
+        </div>
+        <div class="api-body">
+            <div class="api-grid">
+                <div>
+                    <div class="api-section-title">Request Headers</div>
+                    <table class="param-table">
+                        <tr><th>Header</th><th>Required</th><th>Description</th></tr>
+                        <tr><td>Authorization</td><td>Yes</td><td>Bearer YOUR_API_KEY</td></tr>
+                        <tr><td>Content-Type</td><td>Yes</td><td>application/json</td></tr>
+                    </table>
+                    <div class="api-section-title" style="margin-top: 24px;">Request Body</div>
+                    <table class="param-table">
+                        <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+                        <tr><td>identifier</td><td>string</td><td>Username or email attempting login</td></tr>
+                        <tr><td>url</td><td>string</td><td>The page URL (optional, for logging)</td></tr>
+                    </table>
+                </div>
+                <div>
+                    <div class="api-section-title">Example Request</div>
+                    <div class="snippet-wrapper">
+                        <div class="snippet-toolbar">
+                            <span class="snippet-label">curl</span>
+                            <button class="copy-btn" id="curlVerifyBtn" onclick="copySnippet('curl-verify', 'curlVerifyBtn')"><i class="fa-solid fa-copy"></i> Copy</button>
+                        </div>
+                        <pre id="curl-verify" style="font-size: 0.75rem; padding: 16px;"><span class="c-kw">curl</span> -X POST {{ ids_host }}/api/v1/auth/verify \
+  -H <span class="c-str">"Authorization: Bearer YOUR_API_KEY"</span> \
+  -H <span class="c-str">"Content-Type: application/json"</span> \
+  -d <span class="c-str">'{"identifier": "john.doe"}'</span></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Endpoint 2: Full Login -->
+    <div style="margin-bottom: 12px; color: var(--text-muted); font-size: 0.85rem; font-weight: 600;">ENDPOINT 2 — Full Authentication (backend-to-backend)</div>
+    <div class="api-box" style="margin-bottom: 32px;">
+        <div class="api-endpoint-bar">
+            <span class="method-badge method-post">POST</span>
+            <span class="endpoint-url">{{ ids_host }}/api/v1/auth/login</span>
+        </div>
+        <div class="api-body">
+            <div class="api-grid">
+                <div>
+                    <div class="api-section-title">Request Headers</div>
+                    <table class="param-table">
+                        <tr><th>Header</th><th>Required</th><th>Description</th></tr>
+                        <tr><td>Authorization</td><td>Yes</td><td>Bearer YOUR_API_KEY</td></tr>
+                        <tr><td>Content-Type</td><td>Yes</td><td>application/json</td></tr>
+                    </table>
+                    <div class="api-section-title" style="margin-top: 24px;">Request Body</div>
+                    <table class="param-table">
+                        <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+                        <tr><td>identifier</td><td>string</td><td>Username, email, or employee ID</td></tr>
+                        <tr><td>password</td><td>string</td><td>The user's plain-text password</td></tr>
+                    </table>
+                </div>
+                <div>
+                    <div class="api-section-title">Example Request</div>
+                    <div class="snippet-wrapper">
+                        <div class="snippet-toolbar">
+                            <span class="snippet-label">curl</span>
+                            <button class="copy-btn" id="curlLoginBtn" onclick="copySnippet('curl-login', 'curlLoginBtn')"><i class="fa-solid fa-copy"></i> Copy</button>
+                        </div>
+                        <pre id="curl-login" style="font-size: 0.75rem; padding: 16px;"><span class="c-kw">curl</span> -X POST {{ ids_host }}/api/v1/auth/login \
+  -H <span class="c-str">"Authorization: Bearer YOUR_API_KEY"</span> \
+  -H <span class="c-str">"Content-Type: application/json"</span> \
+  -d <span class="c-str">'{"identifier": "john", "password": "pass123"}'</span></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Response Types -->
+    <div class="section-label" style="margin-top: 40px; margin-bottom: 12px;">Response Status Types</div>
+    <div class="response-cards">
+        <div class="response-card allow">
+            <span class="response-status status-allow">allow</span>
+            <h4>Login Permitted</h4>
+            <p>All security checks passed. Grant the user access to your system.</p>
+            <pre class="mini">{
+  "status": "allow",
+  "reason": "Login successful.",
+  "user": {
+    "id": "abc-123",
+    "name": "John Doe",
+    "role": "Employee"
+  }
+}</pre>
+        </div>
+        <div class="response-card deny">
+            <span class="response-status status-deny">deny</span>
+            <h4>Login Denied</h4>
+            <p>Failed credentials, outside work hours, or locked account. Refuse access.</p>
+            <pre class="mini">{
+  "status": "deny",
+  "reason": "Incorrect credentials.
+  2 attempt(s) remaining.",
+  "failed_attempts": 1
+}</pre>
+        </div>
+        <div class="response-card lock">
+            <span class="response-status status-lock">lock_account</span>
+            <h4>Account Locked</h4>
+            <p>Max failed attempts reached. Account is now locked. Admin is notified by email.</p>
+            <pre class="mini">{
+  "status": "lock_account",
+  "reason": "Account locked after
+  3 failed attempts.",
+  "failed_attempts": 3
+}</pre>
+        </div>
+    </div>
+</div>
+
+<!-- ===== SELF-SERVICE REGISTRATION ===== -->
+<div class="section" id="register" style="padding-bottom: 0;">
+    <div class="section-label">Get Started</div>
+    <h2 class="section-title">Register your company — free</h2>
+    <p class="section-sub">Enter your details below to instantly generate an API key. No credit card, no manual review.</p>
+
+    {% if get_flashed_messages() %}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, message in messages %}
+      <div style="background: {% if category == 'danger' %}rgba(239,68,68,0.12){% else %}rgba(45,218,155,0.12){% endif %}; border: 1px solid {% if category == 'danger' %}rgba(239,68,68,0.25){% else %}rgba(45,218,155,0.25){% endif %}; padding: 14px 18px; border-radius: 10px; color: {% if category == 'danger' %}var(--danger){% else %}var(--success){% endif %}; margin-bottom: 20px; font-size: 0.9rem; display: flex; gap: 10px; align-items: center;">
+        <i class="fa-solid fa-{% if category == 'danger' %}circle-exclamation{% else %}circle-check{% endif %}"></i>
+        {{ message }}
+      </div>
+      {% endfor %}
+    {% endwith %}
+    {% endif %}
+
+    <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; padding: 40px; max-width: 560px; margin-bottom: 60px;">
+        <form method="POST" action="/register-company" autocomplete="off">
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-dim); margin-bottom: 8px;">
+                    <i class="fa-solid fa-building" style="color: var(--accent);"></i> &nbsp;Company Name <span style="color: var(--danger);">*</span>
+                </label>
+                <input
+                    type="text" name="company_name" required
+                    placeholder="e.g. Acme Corp"
+                    style="width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; color: white; font-size: 0.95rem; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s;"
+                    onfocus="this.style.borderColor='rgba(108,92,231,0.5)'" onblur="this.style.borderColor=''"
+                />
+            </div>
+            <div style="margin-bottom: 28px;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-dim); margin-bottom: 8px;">
+                    <i class="fa-solid fa-envelope" style="color: var(--accent);"></i> &nbsp;Contact Email <span style="color: var(--danger);">*</span>
+                </label>
+                <input
+                    type="email" name="contact_email" required
+                    placeholder="e.g. security@acme.com"
+                    style="width: 100%; padding: 12px 16px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; color: white; font-size: 0.95rem; font-family: 'Inter', sans-serif; outline: none; transition: border-color 0.2s;"
+                    onfocus="this.style.borderColor='rgba(108,92,231,0.5)'" onblur="this.style.borderColor=''"
+                />
+                <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 6px;">Your API key and integration snippet will be sent to this address.</div>
+            </div>
+
+            <!-- What you get -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 28px;">
+                <div style="background: rgba(45,218,155,0.06); border: 1px solid rgba(45,218,155,0.15); border-radius: 8px; padding: 12px; font-size: 0.8rem; color: var(--success); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-key"></i> Unique API Key
+                </div>
+                <div style="background: rgba(45,218,155,0.06); border: 1px solid rgba(45,218,155,0.15); border-radius: 8px; padding: 12px; font-size: 0.8rem; color: var(--success); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-code"></i> Integration Snippet
+                </div>
+                <div style="background: rgba(45,218,155,0.06); border: 1px solid rgba(45,218,155,0.15); border-radius: 8px; padding: 12px; font-size: 0.8rem; color: var(--success); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-shield-halved"></i> Instant Protection
+                </div>
+                <div style="background: rgba(45,218,155,0.06); border: 1px solid rgba(45,218,155,0.15); border-radius: 8px; padding: 12px; font-size: 0.8rem; color: var(--success); display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-envelope"></i> Emailed to You
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary" style="width: 100%; justify-content: center; padding: 14px; font-size: 1rem; border-radius: 12px; box-shadow: 0 6px 24px rgba(108,92,231,0.4);">
+                <i class="fa-solid fa-bolt"></i> Generate My API Key
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- ===== CTA BANNER ===== -->
+<div class="cta-banner">
+    <h2><i class="fa-solid fa-shield-halved" style="color: var(--accent)"></i> Already have a key?</h2>
+    <p>Head to the Integration Guide below and paste your script tag. You're protected in under 2 minutes.</p>
+    <div style="display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;">
+        <a href="/test-customer" class="btn-primary"><i class="fa-solid fa-eye"></i> See It In Action</a>
+        <a href="#quickstart" class="btn-outline"><i class="fa-solid fa-book"></i> View Guide</a>
+    </div>
+</div>
+
+<!-- ===== FOOTER ===== -->
+<footer class="footer">
+    <span>© 2026 SecureIDS — Employee Intrusion Detection System</span>
+    <div style="display: flex; gap: 20px;">
+        <a href="/integration">Integration Docs</a>
+        <a href="/test-customer">Demo</a>
+        <a href="/admin/dashboard">Admin</a>
+    </div>
+</footer>
+
+<script>
+    function copySnippet(id, btnId) {
+        // Get raw text content (strip HTML tags)
+        const el = document.getElementById(id);
+        const text = el.innerText || el.textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            const btn = document.getElementById(btnId);
+            btn.classList.add('copied');
+            btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+            setTimeout(() => {
+                btn.classList.remove('copied');
+                btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copy';
+            }, 2000);
+        });
+    }
+
+    // Scroll-reveal for step cards
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.style.opacity = '1';
+                e.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.step-card').forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(24px)';
+        card.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+        observer.observe(card);
+    });
+</script>
+</body>
+</html>

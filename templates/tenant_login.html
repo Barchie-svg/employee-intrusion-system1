@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenant Portal Login — SecureIDS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #080b14;
+            --bg-card: #0f1320;
+            --border: rgba(255,255,255,0.07);
+            --accent: #6c5ce7;
+            --text: #f1f5f9;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #2dda9b;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            top: -200px; right: -200px;
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(108,92,231,0.15) 0%, transparent 60%);
+            border-radius: 50%;
+        }
+        .login-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 48px;
+            width: 100%;
+            max-width: 440px;
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+        }
+        .logo-wrap {
+            display: flex; align-items: center; gap: 12px;
+            font-size: 1.3rem; font-weight: 700; margin-bottom: 32px;
+            justify-content: center;
+        }
+        .logo-icon {
+            width: 40px; height: 40px;
+            background: linear-gradient(135deg, var(--accent), #7c3aed);
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 15px rgba(108,92,231,0.4);
+        }
+        .form-title { font-size: 1.1rem; font-weight: 600; text-align: center; color: #94a3b8; margin-bottom: 24px; }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: #94a3b8; margin-bottom: 8px; }
+        .form-group input {
+            width: 100%; padding: 14px 16px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: 10px; color: white;
+            font-family: 'Inter', sans-serif; font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .form-group input:focus { outline: none; border-color: rgba(108,92,231,0.5); background: rgba(108,92,231,0.05); }
+        
+        .btn-primary {
+            width: 100%; padding: 14px;
+            background: var(--accent); color: white;
+            border: none; border-radius: 10px;
+            font-size: 1rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 6px 20px rgba(108,92,231,0.3);
+            margin-top: 10px;
+        }
+        .btn-primary:hover { background: #5b4bc4; transform: translateY(-2px); }
+        
+        .alert {
+            padding: 12px 16px; border-radius: 8px; font-size: 0.85rem;
+            margin-bottom: 20px; display: flex; align-items:flex-start; gap: 10px;
+        }
+        .alert-danger { background: rgba(239,68,68,0.15); color: var(--danger); border: 1px solid rgba(239,68,68,0.3); }
+        .alert-warning { background: rgba(245,158,11,0.15); color: var(--warning); border: 1px solid rgba(245,158,11,0.3); }
+        .alert-success { background: rgba(45,218,155,0.15); color: var(--success); border: 1px solid rgba(45,218,155,0.3); }
+        
+        .footer-link { text-align: center; margin-top: 24px; font-size: 0.85rem; color: #64748b; }
+        .footer-link a { color: var(--accent); text-decoration: none; font-weight: 600; }
+        .footer-link a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<div class="login-box">
+    <div class="logo-wrap">
+        <div class="logo-icon"><i class="fa-solid fa-shield-halved"></i></div>
+        SecureIDS Tenant Portal
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">
+            <i class="fa-solid fa-circle-info" style="margin-top:2px;"></i>
+            <div>{{ message }}</div>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="form-title">Sign in to manage your integraton</div>
+
+    <form method="POST" action="/integration">
+        <div class="form-group">
+            <label><i class="fa-solid fa-building"></i> Company Admin Email</label>
+            <input type="email" name="email" placeholder="admin@yourcompany.com" required>
+        </div>
+        <div class="form-group">
+            <label><i class="fa-solid fa-lock"></i> Portal Password</label>
+            <input type="password" name="password" placeholder="••••••••••••" required>
+        </div>
+        <button type="submit" class="btn-primary">Access Tenant Portal <i class="fa-solid fa-arrow-right ml-2"></i></button>
+    </form>
+    
+    <div class="footer-link">
+        New to SecureIDS? Talk to your SuperAdmin to get an account.
+    </div>
+</div>
+
+</body>
+</html>

@@ -1,4 +1,7 @@
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # ── Supabase ──────────────────────────────────────────────
 SUPABASE_URL = os.environ.get(

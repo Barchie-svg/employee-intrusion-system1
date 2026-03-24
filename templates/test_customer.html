@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlobalTech™ Enterprise Portal — Secured by SecureIDS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-dark: #1d4ed8;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-bg: rgba(255, 255, 255, 0.04);
+            --border: rgba(255,255,255,0.09);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: var(--bg-gradient);
+            display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden;
+        }
+        /* animated background orbs */
+        body::before, body::after {
+            content: '';
+            position: absolute; border-radius: 50%;
+            pointer-events: none; animation: orbFloat 12s ease-in-out infinite;
+        }
+        body::before {
+            width: 600px; height: 600px;
+            background: radial-gradient(circle, rgba(37,99,235,0.12) 0%, transparent 70%);
+            top: -200px; left: -200px;
+        }
+        body::after {
+            width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%);
+            bottom: -150px; right: -100px;
+            animation-delay: -6s;
+        }
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(30px, 20px); }
+        }
+
+        .login-wrapper {
+            width: 100%; max-width: 1020px;
+            display: flex; border-radius: 24px; overflow: hidden;
+            box-shadow: 0 40px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+            margin: 20px; position: relative; z-index: 1;
+        }
+        .login-sidebar {
+            flex: 1;
+            background: linear-gradient(160deg, #1e3a8a 0%, #312e81 50%, #4c1d95 100%);
+            padding: 55px 44px;
+            color: white;
+            display: flex; flex-direction: column; justify-content: space-between;
+            position: relative; overflow: hidden;
+        }
+        .login-sidebar::before {
+            content: '';
+            position: absolute; top: -60px; right: -60px;
+            width: 250px; height: 250px; border-radius: 50%;
+            background: rgba(255,255,255,0.05);
+        }
+        .login-sidebar::after {
+            content: '';
+            position: absolute; bottom: -80px; left: -40px;
+            width: 300px; height: 300px; border-radius: 50%;
+            background: rgba(255,255,255,0.04);
+        }
+        .sidebar-brand {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 1.1rem; font-weight: 700; position: relative; z-index: 1;
+        }
+        .sidebar-brand-icon {
+            width: 36px; height: 36px;
+            background: rgba(255,255,255,0.15); border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .sidebar-content { position: relative; z-index: 1; }
+        .sidebar-content h2 { font-size: 2.2rem; font-weight: 700; line-height: 1.2; margin-bottom: 16px; }
+        .sidebar-content p { color: rgba(255,255,255,0.7); font-size: 0.95rem; line-height: 1.6; }
+        .sidebar-features { margin-top: 32px; display: flex; flex-direction: column; gap: 12px; position: relative; z-index: 1; }
+        .sidebar-feature {
+            display: flex; align-items: center; gap: 12px;
+            font-size: 0.85rem; color: rgba(255,255,255,0.8);
+        }
+        .sidebar-feature-icon {
+            width: 32px; height: 32px;
+            background: rgba(255,255,255,0.1); border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; font-size: 0.85rem;
+        }
+        .ids-badge-sidebar {
+            position: relative; z-index: 1;
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(108,92,231,0.25); border: 1px solid rgba(108,92,231,0.4);
+            color: #c4b5fd; padding: 8px 14px; border-radius: 100px;
+            font-size: 0.8rem; font-weight: 600;
+        }
+
+        .login-form-container {
+            flex: 1;
+            padding: 60px 52px;
+            background: #0d0f1a;
+            display: flex; flex-direction: column; justify-content: center;
+        }
+        .login-header { margin-bottom: 36px; }
+        .login-header h3 { font-size: 1.7rem; color: white; font-weight: 700; margin-bottom: 6px; }
+        .login-header p { color: #64748b; font-size: 0.9rem; }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block; font-size: 0.8rem; font-weight: 600;
+            color: #94a3b8; margin-bottom: 8px; letter-spacing: 0.3px;
+        }
+        .form-group input {
+            width: 100%; padding: 14px 16px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px; font-family: 'Inter', sans-serif;
+            font-size: 0.95rem; color: white; transition: all 0.2s;
+        }
+        .form-group input::placeholder { color: #475569; }
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: rgba(37,99,235,0.06);
+            box-shadow: 0 0 0 4px rgba(37,99,235,0.12);
+        }
+
+        .submit-btn {
+            width: 100%; padding: 15px;
+            background: linear-gradient(135deg, var(--primary), #4338ca);
+            color: white; border: none; border-radius: 10px;
+            font-size: 0.95rem; font-weight: 600;
+            cursor: pointer; transition: all 0.2s;
+            box-shadow: 0 4px 20px rgba(37,99,235,0.35);
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+            margin-top: 8px;
+        }
+        .submit-btn:hover {
+            background: linear-gradient(135deg, var(--primary-dark), #3730a3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(37,99,235,0.45);
+        }
+        .submit-btn:active { transform: translateY(0); }
+
+        .separator {
+            text-align: center; color: #334155; font-size: 0.8rem;
+            margin: 20px 0; position: relative;
+        }
+        .separator::before, .separator::after {
+            content: ''; position: absolute; top: 50%;
+            width: 40%; height: 1px; background: rgba(255,255,255,0.07);
+        }
+        .separator::before { left: 0; }
+        .separator::after { right: 0; }
+
+        @media (max-width: 768px) {
+            .login-wrapper { flex-direction: column; }
+            .login-sidebar { padding: 40px 30px; min-height: 260px; }
+            .login-form-container { padding: 40px 30px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sandbox Banner -->
+    <div style="position: absolute; top: 0; left: 0; right: 0; background: rgba(108,92,231,0.15); border-bottom: 1px solid rgba(108,92,231,0.3); padding: 12px; text-align: center; color: #c4b5fd; font-size: 0.85rem; font-weight: 500; z-index: 100;">
+        <i class="fa-solid fa-flask" style="color: #a78bfa; margin-right: 6px;"></i> 
+        <strong>Sandbox Demo Active</strong> — Using API key for <strong>{{ company_name }}</strong> (<code>{{ api_key[:15] }}...</code>)
+    </div>
+
+    <div class="login-wrapper">
+        <!-- Left sidebar -->
+        <div class="login-sidebar">
+            <div class="sidebar-brand">
+                <div class="sidebar-brand-icon"><i class="fa-solid fa-earth-americas"></i></div>
+                GlobalTech™ Enterprise
+            </div>
+
+            <div class="sidebar-content">
+                <h2>Employee<br>Secure Portal</h2>
+                <p>Your single point of access to all GlobalTech internal resources, projects, and communications.</p>
+                <div class="sidebar-features">
+                    <div class="sidebar-feature">
+                        <div class="sidebar-feature-icon"><i class="fa-solid fa-chart-line"></i></div>
+                        Real-time analytics &amp; reporting
+                    </div>
+                    <div class="sidebar-feature">
+                        <div class="sidebar-feature-icon"><i class="fa-solid fa-users"></i></div>
+                        Team collaboration tools
+                    </div>
+                    <div class="sidebar-feature">
+                        <div class="sidebar-feature-icon"><i class="fa-solid fa-cloud"></i></div>
+                        Secure cloud document access
+                    </div>
+                </div>
+            </div>
+
+            <div class="ids-badge-sidebar">
+                <i class="fa-solid fa-shield-halved"></i> Protected by SecureIDS
+            </div>
+        </div>
+
+        <!-- Right form -->
+        <div class="login-form-container">
+            <div class="login-header">
+                <h3>Sign In</h3>
+                <p>Enter your GlobalTech credentials to access the portal.</p>
+            </div>
+
+            <form action="/test-customer-dashboard" method="GET" id="loginForm">
+                <div class="form-group">
+                    <label for="email"><i class="fa-solid fa-envelope" style="margin-right:6px; color: #4f6ef7;"></i> Enterprise Email</label>
+                    <input type="email" name="user_email" id="email" placeholder="you@globaltech.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="password"><i class="fa-solid fa-lock" style="margin-right:6px; color: #4f6ef7;"></i> Password</label>
+                    <input type="password" name="password" id="password" placeholder="••••••••••••" required>
+                </div>
+
+                <div style="display:flex; justify-content:flex-end; margin-bottom: 20px;">
+                    <a href="#" style="font-size: 0.82rem; color: #4f6ef7; text-decoration: none;">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="submit-btn" id="loginBtn">
+                    <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In Securely
+                </button>
+            </form>
+
+            <div class="separator">security powered by</div>
+            <div style="text-align: center;">
+                <a href="/integration" target="_blank" style="display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: #64748b; font-size: 0.8rem; font-weight: 600; padding: 8px 16px; border: 1px solid rgba(255,255,255,0.07); border-radius: 8px; transition: all 0.2s;" onmouseover="this.style.color='#a78bfa'; this.style.borderColor='rgba(108,92,231,0.3)'" onmouseout="this.style.color='#64748b'; this.style.borderColor='rgba(255,255,255,0.07)'">
+                    <i class="fa-solid fa-shield-halved" style="color:#6c5ce7"></i> SecureIDS Intrusion Detection
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====== SECURE IDS INVISIBLE SHIELD ====== -->
+    <script src="/static/ids-shield.js"
+        data-api-key="{{ api_key }}"></script>
+    <!-- =========================================== -->
+</body>
+</html>

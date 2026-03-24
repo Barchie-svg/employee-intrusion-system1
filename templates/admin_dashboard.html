@@ -271,6 +271,10 @@ body {
         <i class="fa-solid fa-triangle-exclamation"></i>
         <span class="nav-text">Intrusion Logs</span>
       </div>
+      <div class="nav-item" onclick="switchTab('companies', this)">
+        <i class="fa-solid fa-building"></i>
+        <span class="nav-text">SaaS Tenants</span>
+      </div>
       <div class="nav-item" onclick="switchTab('audit', this)">
         <i class="fa-solid fa-list-check"></i>
         <span class="nav-text">Audit Trails</span>
@@ -279,6 +283,10 @@ body {
         <i class="fa-solid fa-gear"></i>
         <span class="nav-text">Settings</span>
       </div>
+      <a class="nav-item" href="/integration" target="_blank" style="text-decoration:none;">
+        <i class="fa-solid fa-plug" style="color: var(--accent);"></i>
+        <span class="nav-text" style="color: var(--accent);">Integration Docs</span>
+      </a>
     </div>
 
     <div class="sidebar-footer">
@@ -367,6 +375,13 @@ body {
               <div class="stat-label">Active Accounts</div>
             </div>
           </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(108,92,231,0.15);"><i class="fa-solid fa-building" style="color:#a78bfa;"></i></div>
+            <div>
+              <div class="stat-value">{{ companies | length }}</div>
+              <div class="stat-label">SaaS Tenants</div>
+            </div>
+          </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px;">
@@ -449,6 +464,12 @@ body {
                   </td>
                   <td>
                     <div style="display: flex; gap: 6px;">
+                      <form method="POST" action="/admin/employee/{{ emp.id }}/toggle-after-hours" style="display:inline; margin:0; padding:0;">
+                        <input type="hidden" name="allow" value="{{ 'false' if emp.allow_after_hours else 'true' }}">
+                        <button type="submit" class="btn-sm-action" style="background: {% if emp.allow_after_hours %}rgba(45,218,155,0.15); color: var(--success); border: 1px solid rgba(45,218,155,0.3);{% else %}rgba(255,255,255,0.05); color: var(--text-secondary); border: 1px solid var(--border);{% endif %}" title="{% if emp.allow_after_hours %}Revoke After-Hours Access{% else %}Allow After-Hours Access{% endif %}">
+                          <i class="fa-solid fa-moon"></i>
+                        </button>
+                      </form>
                       {% if emp.status == "Locked" %}
                       <a href="/admin/unlock/{{ emp.id }}" class="btn-sm-action btn-unlock" title="Unlock">
                         <i class="fa-solid fa-unlock"></i>
@@ -531,6 +552,94 @@ body {
           <div class="empty-state">
             <i class="fa-solid fa-shield-check" style="color: var(--success); opacity:1;"></i>
             <p>No intrusion events detected. System is secure.</p>
+          </div>
+          {% endif %}
+        </div>
+      </section>
+
+      <section id="tab-companies" class="tab-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="font-size: 1.1rem; margin:0;"><i class="fa-solid fa-building" style="color:var(--accent)"></i> Registered Companies</h3>
+          <button onclick="openAddCompanyModal()" class="btn-primary-custom" style="width: auto; padding: 8px 16px; font-size:0.85rem;">
+            <i class="fa-solid fa-plus me-2"></i> Add SaaS Tenant
+          </button>
+        </div>
+        <div class="card-dark">
+          {% if companies %}
+          <div style="overflow-x: auto">
+            <table class="table-dark-custom">
+              <thead>
+                <tr>
+                  <th>Company Name</th>
+                  <th>Contact Email</th>
+                  <th>API Key</th>
+                  <th>Status</th>
+                  <th>Registered</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for comp in companies %}
+                <tr>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 10px">
+                      <div style="width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), #7c3aed); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 700; color: white; flex-shrink: 0;">
+                        {{ comp.name[0].upper() if comp.name else 'C' }}
+                      </div>
+                      <strong>{{ comp.name }}</strong>
+                    </div>
+                  </td>
+                  <td style="color: var(--text-secondary); font-size: 0.85rem;">
+                    {{ comp.contact_email if comp.contact_email else '—' }}
+                  </td>
+                  <td>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <code id="key-display-{{ comp.id }}" style="background: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 4px; color: #a5b4fc; font-family: monospace; font-size: 0.82rem; letter-spacing: 1px;">
+                        sk_live_...{{ comp.api_key[-8:] }}
+                      </code>
+                      <button
+                        onclick="copyApiKey('{{ comp.api_key }}', this)"
+                        style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: color 0.2s;"
+                        title="Copy full API key" onmouseover="this.style.color='white'" onmouseout="this.style.color=''">
+                        <i class="fa-solid fa-copy"></i>
+                      </button>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="badge-status badge-active">Protected</span>
+                  </td>
+                  <td style="color: var(--text-secondary); font-size: 0.85rem">
+                    {{ comp.created_at[:10] if comp.created_at else '—' }}
+                  </td>
+                  <td>
+                    <div style="display:flex; gap:6px; flex-wrap: wrap;">
+                      <button onclick="openIntegrationGuide('{{ comp.name }}', '{{ comp.api_key }}', '{{ comp.id }}')" class="btn-sm-action" style="background: rgba(108,92,231,0.12); color: #a78bfa; border: 1px solid rgba(108,92,231,0.25); white-space: nowrap;" title="Integration Guide">
+                        <i class="fa-solid fa-plug"></i> Guide
+                      </button>
+                      <button onclick="openEditHoursModal('{{ comp.id }}', '{{ comp.name }}')" class="btn-sm-action" style="background: rgba(56, 189, 248, 0.15); color: var(--info); border: 1px solid rgba(56, 189, 248, 0.3); white-space: nowrap;" title="Edit Working Hours">
+                        <i class="fa-solid fa-clock"></i> Hours
+                      </button>
+                      <form method="POST" action="/admin/companies/{{ comp.id }}/regenerate-key" style="display:inline; margin:0;" onsubmit="return confirm('Regenerate API key for {{ comp.name }}? The current key will stop working immediately. Companies using it must update their integration snippet.')">
+                        <button type="submit" class="btn-sm-action" style="background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.25); white-space: nowrap;" title="Regenerate API Key">
+                          <i class="fa-solid fa-rotate"></i> Regen
+                        </button>
+                      </form>
+                      <form method="POST" action="/admin/companies/{{ comp.id }}/delete" style="display:inline; margin:0;" onsubmit="return confirm('Permanently delete {{ comp.name }}? This cannot be undone and will break any site using their API key.')">
+                        <button type="submit" class="btn-sm-action btn-delete" title="Delete Company">
+                          <i class="fa-solid fa-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="empty-state">
+            <i class="fa-solid fa-building" style="opacity:0.6;"></i>
+            <p>No SaaS tenants have been registered yet.</p>
           </div>
           {% endif %}
         </div>
@@ -622,7 +731,117 @@ body {
   </main>
 </div>
 
-<!-- ===== Add Employee Modal ===== -->
+<!-- ===== Add Company Modal ===== -->
+<div id="addCompanyModal" style="display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
+  <div style="background: var(--bg-card, #1a1d2e); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 18px; width: 100%; max-width: 480px; margin: 20px; padding: 32px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); animation: modalIn 0.2s ease;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+      <h2 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">
+        <i class="fa-solid fa-building me-2" style="color: var(--accent)"></i> Register New Tenant
+      </h2>
+      <button onclick="closeAddCompanyModal()" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 1.4rem;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+    <form method="POST" action="/admin/companies/add" autocomplete="off">
+      <div class="mb-3">
+        <label class="form-label"><i class="fa-solid fa-building me-1"></i> Company Name <span style="color:var(--danger)">*</span></label>
+        <input type="text" name="name" class="form-control" placeholder="e.g. Acme Corp" required />
+      </div>
+      <div class="mb-4">
+        <label class="form-label"><i class="fa-solid fa-envelope me-1"></i> Contact Email <span style="color:var(--text-secondary); font-size:0.8rem;">(optional)</span></label>
+        <input type="email" name="contact_email" class="form-control" placeholder="e.g. security@acme.com" />
+        <div class="form-text" style="color: rgba(255,255,255,0.35); font-size: 0.78rem; margin-top:5px;">The API key will also be sent to this address.</div>
+      </div>
+      <div class="mb-4">
+        <label class="form-label"><i class="fa-solid fa-lock me-1"></i> Tenant Password <span style="color:var(--danger)">*</span></label>
+        <input type="password" name="password" class="form-control" placeholder="Minimum 6 characters" required minlength="6" />
+        <div class="form-text" style="color: rgba(255,255,255,0.35); font-size: 0.78rem; margin-top:5px;">Password for the Tenant Portal.</div>
+      </div>
+      <div style="background: rgba(45, 212, 167, 0.1); border: 1px solid rgba(45, 212, 167, 0.2); padding: 12px; border-radius: 8px; margin-bottom: 24px;">
+        <div style="font-size: 0.85rem; color: var(--success); display: flex; gap: 8px;">
+          <i class="fa-solid fa-circle-info mt-1"></i>
+          <span>A secure <code>sk_live_...</code> API key is auto-generated. Use the <strong>Guide</strong> button to get the integration snippet.</span>
+        </div>
+      </div>
+      <div style="display: flex; gap: 12px; justify-content: flex-end">
+        <button type="button" onclick="closeAddCompanyModal()" style="padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.12); background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 0.88rem;">Cancel</button>
+        <button type="submit" class="btn-primary-custom" style="padding: 10px 24px; font-size: 0.88rem; border-radius: 8px;">
+          <i class="fa-solid fa-building me-1"></i> Register Company
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== Integration Guide Modal ===== -->
+<div id="integrationGuideModal" style="display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0, 0, 0, 0.75); backdrop-filter: blur(6px); align-items: center; justify-content: center;">
+  <div style="background: var(--bg-card, #1a1d2e); border: 1px solid rgba(108,92,231,0.25); border-radius: 18px; width: 100%; max-width: 660px; margin: 20px; padding: 32px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6); animation: modalIn 0.2s ease; max-height: 90vh; overflow-y: auto;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
+      <div>
+        <h2 style="margin: 0 0 4px 0; font-size: 1.2rem; font-weight: 700; color: var(--text-primary);">
+          <i class="fa-solid fa-plug me-2" style="color: var(--accent)"></i> Integration Guide
+        </h2>
+        <p style="margin: 0; color: var(--text-secondary); font-size: 0.82rem;">Share this with <strong id="guideCompanyName" style="color: var(--accent);">the company</strong> to get them protected instantly.</p>
+      </div>
+      <button onclick="closeIntegrationGuide()" style="background: none; border: none; cursor: pointer; color: var(--text-secondary); font-size: 1.4rem;">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Step 1 -->
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 16px; margin-bottom: 14px;">
+      <div style="font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); margin-bottom: 8px;">Step 1 — Paste this into your login page</div>
+      <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 10px;">Add this single line of HTML before the closing <code>&lt;/body&gt;</code> tag on your login page:</p>
+      <div style="background: rgba(0,0,0,0.4); border: 1px solid rgba(108,92,231,0.2); border-radius: 8px; padding: 14px; position: relative;">
+        <code id="guideSnippet" style="font-family: 'Courier New', monospace; font-size: 0.78rem; color: #a5b4fc; word-break: break-all; display: block; line-height: 1.6;"></code>
+        <button onclick="copyGuideSnippet()" id="guideSnippetCopyBtn" style="position: absolute; top: 10px; right: 10px; background: rgba(108,92,231,0.2); color: #a78bfa; border: 1px solid rgba(108,92,231,0.3); padding: 5px 12px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; cursor: pointer;">
+          <i class="fa-solid fa-copy"></i> Copy
+        </button>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 16px; margin-bottom: 14px;">
+      <div style="font-size: 0.75rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--success); margin-bottom: 8px;">Step 2 — That's it!</div>
+      <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0;">The widget automatically detects any login form with a password field. No other changes needed. Every login attempt will be silently screened before your server receives it.</p>
+    </div>
+
+    <!-- Test Connection -->
+    <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+      <div style="font-size: 0.85rem; color: var(--text-secondary);"><i class="fa-solid fa-satellite-dish" style="color: var(--accent);"></i> &nbsp;Verify that SecureIDS is reachable from your integration.</div>
+      <button id="testConnBtn" onclick="testConnection()" style="background: rgba(45,218,155,0.12); color: var(--success); border: 1px solid rgba(45,218,155,0.25); padding: 7px 16px; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; flex-shrink: 0;">
+        <i class="fa-solid fa-plug"></i> Test Connection
+      </button>
+    </div>
+
+    <!-- Checks -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+      <div style="background: rgba(45,218,155,0.08); border: 1px solid rgba(45,218,155,0.15); border-radius: 8px; padding: 12px; text-align: center; font-size: 0.78rem; color: var(--success);">
+        <i class="fa-solid fa-clock" style="display: block; font-size: 1.2rem; margin-bottom: 6px;"></i>
+        Suspicious Hours
+      </div>
+      <div style="background: rgba(45,218,155,0.08); border: 1px solid rgba(45,218,155,0.15); border-radius: 8px; padding: 12px; text-align: center; font-size: 0.78rem; color: var(--success);">
+        <i class="fa-solid fa-key" style="display: block; font-size: 1.2rem; margin-bottom: 6px;"></i>
+        Failed Attempts
+      </div>
+      <div style="background: rgba(45,218,155,0.08); border: 1px solid rgba(45,218,155,0.15); border-radius: 8px; padding: 12px; text-align: center; font-size: 0.78rem; color: var(--success);">
+        <i class="fa-solid fa-lock" style="display: block; font-size: 1.2rem; margin-bottom: 6px;"></i>
+        Account Lockout
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 12px; justify-content: flex-end">
+      <a href="/integration" target="_blank" style="padding: 10px 20px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.12); background: transparent; color: var(--text-secondary); cursor: pointer; font-size: 0.88rem; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+        <i class="fa-solid fa-book"></i> Full API Docs
+      </a>
+      <button onclick="closeIntegrationGuide()" class="btn-primary-custom" style="padding: 10px 24px; font-size: 0.88rem; border-radius: 8px;">
+        Done
+      </button>
+    </div>
+  </div>
+</div>
+
+
 <div id="addEmpModal" style="display: none; position: fixed; inset: 0; z-index: 2000; background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(4px); align-items: center; justify-content: center;">
   <div style="background: var(--bg-card, #1a1d2e); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 18px; width: 100%; max-width: 520px; margin: 20px; padding: 32px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); animation: modalIn 0.2s ease;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
@@ -662,13 +881,13 @@ body {
       <div class="mb-4">
         <label class="form-label"><i class="fa-solid fa-lock me-1"></i> Password</label>
         <div style="position: relative">
-          <input type="password" name="password" id="modalPwd" class="form-control" placeholder="Set a secure password" required pattern="(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}" title="Must be at least 8 characters, containing at least 1 number and 1 special character." style="padding-right: 44px !important" />
+          <input type="password" name="password" id="modalPwd" class="form-control" placeholder="Set a secure password" required minlength="6" style="padding-right: 44px !important" />
           <span onclick="togglePwd('modalPwd', this)" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-secondary);">
             <i class="fa-solid fa-eye"></i>
           </span>
         </div>
         <div class="form-text" style="color: rgba(255, 255, 255, 0.4); font-size: 0.75rem; margin-top: 6px;">
-          Must be at least 8 characters, containing at least 1 number and 1 special character.
+          Must be at least 6 characters.
         </div>
       </div>
       <div style="display: flex; gap: 12px; justify-content: flex-end">
@@ -699,7 +918,7 @@ body {
       <div class="mb-4">
         <label class="form-label"><i class="fa-solid fa-lock me-1"></i> New Password</label>
         <div style="position: relative">
-          <input type="password" name="password" id="resetPwdInput" class="form-control" placeholder="Enter new password" required pattern="(?=.*[A-Za-z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}" title="Must be at least 8 characters, containing at least 1 number and 1 special character." style="padding-right: 44px !important" />
+          <input type="password" name="password" id="resetPwdInput" class="form-control" placeholder="Enter new password" required minlength="6" style="padding-right: 44px !important" />
           <span onclick="togglePwd('resetPwdInput', this)" style="position: absolute; right: 14px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-secondary);">
             <i class="fa-solid fa-eye"></i>
           </span>
@@ -711,6 +930,26 @@ body {
           Update Password
         </button>
       </div>
+    </form>
+  </div>
+</div>
+<!-- ─── Edit Hours Modal ─── -->
+<div class="modal-overlay" id="editHoursModal" style="display: none; align-items: center; justify-content: center; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10000;">
+  <div class="modal-box" style="max-width:350px; background: #1a1d2e; padding: 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); width: 100%;">
+    <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <h3 id="editHoursTitle" style="margin: 0;">Edit Working Hours</h3>
+      <button type="button" class="close-modal" onclick="closeEditHoursModal()" style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem;"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form id="editHoursForm" method="POST" action="">
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="display: block; margin-bottom: 6px;">Start Time (e.g. 05:00:00)</label>
+        <input type="time" name="start" required class="input-modern" style="color-scheme: dark; width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white;">
+      </div>
+      <div class="form-group" style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 6px;">End Time (e.g. 23:00:00)</label>
+        <input type="time" name="end" required class="input-modern" style="color-scheme: dark; width: 100%; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: white;">
+      </div>
+      <button type="submit" class="btn-primary-custom" style="width:100%; padding: 10px; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer;"><i class="fa-solid fa-save me-2"></i> Save Hours</button>
     </form>
   </div>
 </div>
@@ -735,6 +974,7 @@ body {
     // Update Topbar Title
     const map = {
       'overview': 'Dashboard Overview',
+      'companies': 'SaaS Companies & API Keys',
       'employees': 'Manage Employees',
       'logs': 'Intrusion Events',
       'audit': 'Administrator Audit Trails',
@@ -766,8 +1006,31 @@ body {
   }
   function closeResetModal() { document.getElementById("resetPwdModal").style.display = "none"; }
 
-  document.getElementById("addEmpModal").addEventListener("click", function (e) { if (e.target === this) closeAddModal(); });
-  document.getElementById("resetPwdModal").addEventListener("click", function (e) { if (e.target === this) closeResetModal(); });
+  (function() {
+    var empM = document.getElementById("addEmpModal");
+    var coM  = document.getElementById("addCompanyModal");
+    var rpM  = document.getElementById("resetPwdModal");
+    var igM  = document.getElementById("integrationGuideModal");
+    var ehM  = document.getElementById("editHoursModal");
+    if (empM) empM.addEventListener("click", function (e) { if (e.target === this) closeAddModal(); });
+    if (coM)  coM.addEventListener("click",  function (e) { if (e.target === this) closeAddCompanyModal(); });
+    if (rpM)  rpM.addEventListener("click",  function (e) { if (e.target === this) closeResetModal(); });
+    if (igM)  igM.addEventListener("click",  function (e) { if (e.target === this) closeIntegrationGuide(); });
+    if (ehM)  ehM.addEventListener("click",  function (e) { if (e.target === this) closeEditHoursModal(); });
+  })();
+
+  // ── Add Company Modal ──
+  function openAddCompanyModal() {
+    const modal = document.getElementById("addCompanyModal");
+    modal.style.display = "flex";
+    document.body.style.overflow = "hidden";
+  }
+  function closeAddCompanyModal() {
+    const modal = document.getElementById("addCompanyModal");
+    modal.style.display = "none";
+    document.body.style.overflow = "";
+    modal.querySelector("form").reset();
+  }
 
   // ── Add Employee Modal ──
   function openAddModal() {
@@ -846,6 +1109,80 @@ body {
       }
     }
   });
+
+
+    function openEditHoursModal(companyId, companyName) {
+      document.getElementById('editHoursTitle').textContent = `Working Hours: ${companyName}`;
+      document.getElementById('editHoursForm').action = `/admin/companies/${companyId}/hours`;
+      document.getElementById('editHoursModal').style.display = 'flex';
+    }
+    function closeEditHoursModal() {
+      document.getElementById('editHoursModal').style.display = 'none';
+    }
+
+  // ─── Integration Guide Modal ───
+  const IDS_HOST = window.location.origin;
+
+  function openIntegrationGuide(companyName, apiKey, companyId) {
+    document.getElementById('guideCompanyName').textContent = companyName;
+    const snippet = '<script src="' + IDS_HOST + '/static/ids-shield.js"\n        data-api-key="' + apiKey + '"><' + '/sc' + 'ript>';
+    document.getElementById('guideSnippet').textContent = snippet;
+    const modal = document.getElementById('integrationGuideModal');
+    modal.style.display = 'flex';
+    // Reset test button
+    const testBtn = document.getElementById('testConnBtn');
+    if (testBtn) { testBtn.innerHTML = '<i class="fa-solid fa-plug"></i> Test Connection'; testBtn.style.background = 'rgba(45,218,155,0.12)'; testBtn.style.color = 'var(--success)'; testBtn.style.borderColor = 'rgba(45,218,155,0.25)'; }
+  }
+
+  function closeIntegrationGuide() {
+    document.getElementById('integrationGuideModal').style.display = 'none';
+  }
+
+  function copyApiKey(fullKey, btn) {
+    navigator.clipboard.writeText(fullKey).then(() => {
+      btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+      btn.style.color = 'var(--success)';
+      setTimeout(() => { btn.innerHTML = '<i class="fa-solid fa-copy"></i>'; btn.style.color = ''; }, 1500);
+    });
+  }
+
+  function copyGuideSnippet() {
+    const text = document.getElementById('guideSnippet').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.getElementById('guideSnippetCopyBtn');
+      btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+      btn.style.background = 'rgba(45,218,155,0.2)';
+      btn.style.color = 'var(--success)';
+      setTimeout(() => {
+        btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copy';
+        btn.style.background = 'rgba(108,92,231,0.2)';
+        btn.style.color = '#a78bfa';
+      }, 2000);
+    });
+  }
+
+  async function testConnection() {
+    const btn = document.getElementById('testConnBtn');
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Testing...';
+    btn.style.color = 'var(--text-secondary)';
+    btn.disabled = true;
+    try {
+      const res = await fetch(IDS_HOST + '/api/v1/health');
+      const data = await res.json();
+      if (data.status === 'ok') {
+        btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Service Online';
+        btn.style.background = 'rgba(45,218,155,0.2)';
+        btn.style.color = 'var(--success)';
+        btn.style.borderColor = 'rgba(45,218,155,0.4)';
+      } else { throw new Error('unexpected'); }
+    } catch(e) {
+      btn.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Unreachable';
+      btn.style.background = 'rgba(239,68,68,0.12)';
+      btn.style.color = 'var(--danger)';
+      btn.style.borderColor = 'rgba(239,68,68,0.25)';
+    } finally { btn.disabled = false; }
+  }
+
 </script>
 <style>
   @keyframes modalIn {
